@@ -160,10 +160,10 @@ class PlaceListItem extends StatelessWidget {
                       ),
                       Container(height: 5),
                       Text(
-                        "Sub title",
-                        //style: MyTextSample.body1(context)!.copyWith(
-                        //  color: Colors.grey[500],
-                        //),
+                        "  " + placeData.primaryType,
+                        style: TextStyle(
+                          color: Colors.grey[500],
+                        ),
                       ),
                     ],
                   ),
