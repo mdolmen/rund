@@ -5,6 +5,17 @@ import 'dart:convert';
 
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+
+const Map<String, int> dayNamesIndex = {
+  'Monday': 0,
+  'Tuesday': 1,
+  'Wednesday': 2,
+  'Thursday': 3,
+  'Friday': 4,
+  'Saturday': 5,
+  'Sunday': 6,
+};
 
 class AutourScreen extends StatefulWidget {
   const AutourScreen({super.key});
@@ -116,13 +127,29 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
 
 class PlaceListItem extends StatelessWidget {
   final Place placeData;
+  int _todayIdx = 0;
 
-  const PlaceListItem({
+  PlaceListItem({
     required this.placeData,
   });
 
   @override
+  void initState() {
+    _todayIdx = dayNamesIndex[getDayName()] ?? -1;
+  }
+
+  String getDayName() {
+    return DateFormat('EEEE').format(DateTime.now());
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final String? currentOpeningHours =
+            placeData.currentOpeningHours?.weekdayDescriptions[_todayIdx];
+    final bool isOpen = placeData.currentOpeningHours?.openNow ?? false;
+    final IconData isOpenIcon = isOpen ? Icons.check_circle : Icons.cancel;
+    final Color isOpenColor = isOpen ? Colors.green : Colors.red;
+
     return Card(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
@@ -136,13 +163,6 @@ class PlaceListItem extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                //Image.asset(
-                //  "assets/images/flutter_logo.png",
-                //  height: 100,
-                //  width: 100,
-                //  fit: BoxFit.cover,
-                //),
-
                 // Spacing between the image and the text
                 Container(width: 20),
 
@@ -154,15 +174,35 @@ class PlaceListItem extends StatelessWidget {
                       Container(height: 5),
                       Text(
                         placeData.displayName,
-                        //style: MyTextSample.title(context)!.copyWith(
-                        //  color: MyColorsSample.grey_80,
-                        //),
+                        style: TextStyle(
+                          fontSize: 16,
+                        ),
+                      ),
+                      Container(height: 5),
+                      RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: "  ",
+                            ),
+                            WidgetSpan(
+                              child: Icon(isOpenIcon, size: 14, color: isOpenColor),
+                            ),
+                            TextSpan(
+                              text: " " + (currentOpeningHours ?? "No hours available"),
+                              style: TextStyle(
+                                color: Colors.black,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       Container(height: 5),
                       Text(
                         "  " + placeData.primaryType,
                         style: TextStyle(
                           color: Colors.grey[500],
+                          fontStyle: FontStyle.italic,
                         ),
                       ),
                     ],
@@ -184,6 +224,7 @@ class Place {
   final String primaryType;
   final String displayName;
   final Location location;
+  final OpeningHours? currentOpeningHours;
 
   const Place({
     required this.formattedAddress,
@@ -191,16 +232,20 @@ class Place {
     required this.primaryType,
     required this.displayName,
     required this.location,
+    required this.currentOpeningHours,
   });
 
   factory Place.fromJson(Map<String, dynamic> json) {
-    print(json);
+    //print(json);
     return Place(
       formattedAddress: json['formattedAddress'],
       googleMapsUri: json['googleMapsUri'],
       primaryType: json['primaryType'],
       displayName: json['displayName']['text'],
       location: Location.fromJson(json['location']),
+      currentOpeningHours: json['currentOpeningHours'] != null
+        ? OpeningHours.fromJson(json['currentOpeningHours'])
+        : null,
     );
   }
 }
@@ -221,5 +266,64 @@ class Location {
   @override
   String toString() {
     return 'Location(lat: $lat, lng: $lng)';
+  }
+}
+
+class OpeningHours {
+  final bool openNow;
+  final List<Period> periods;
+  final List<String> weekdayDescriptions;
+
+  OpeningHours({
+    required this.openNow,
+    required this.periods,
+    required this.weekdayDescriptions,
+  });
+
+  factory OpeningHours.fromJson(Map<String, dynamic> json) {
+    print(json);
+    final List<dynamic> periodsJson = json['periods'];
+    return OpeningHours(
+      openNow: json['openNow'],
+      periods: periodsJson.map((period) => Period.fromJson(period)).toList(),
+      weekdayDescriptions: List<String>.from(json['weekdayDescriptions']),
+    );
+  }
+}
+
+class Period {
+  final Hour open;
+  final Hour close;
+
+  Period({
+    required this.open,
+    required this.close
+  });
+
+  factory Period.fromJson(Map<String, dynamic> json) {
+    return Period(
+      open: Hour.fromJson(json['open']),
+      close: Hour.fromJson(json['close']),
+    );
+  }
+}
+
+class Hour {
+  final int day;
+  final int hour;
+  final int minute;
+
+  Hour({
+    required this.day,
+    required this.hour,
+    required this.minute,
+  });
+
+  factory Hour.fromJson(Map<String, dynamic> json) {
+    return Hour(
+      day: json['day'],
+      hour: json['hour'],
+      minute: json['minute'],
+    );
   }
 }
