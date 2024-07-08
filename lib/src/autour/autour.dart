@@ -208,6 +208,29 @@ class PlaceListItem extends StatelessWidget {
                     ],
                   ),
                 ),
+
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    IconButton(
+                      iconSize: 44,
+                      icon: const Icon(Icons.assistant_navigation),
+                      onPressed: () {
+                        print("Open in maps");
+                      },
+                      padding: EdgeInsets.zero,
+                    ),
+                    Container(height: 5),
+                    Text(
+                      "100m",
+                      style: TextStyle(
+                        fontSize: 16,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+
               ],
             ),
           ),
