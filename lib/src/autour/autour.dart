@@ -191,6 +191,7 @@ class PlaceListItem extends StatelessWidget {
                         placeData.displayName,
                         style: TextStyle(
                           fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                       Container(height: 5),
