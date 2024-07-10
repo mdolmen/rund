@@ -59,14 +59,29 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
   /// Returns JSON data parseable into Place objects.
   Future<List<Place>> getPlaces() async {
     List<Place> places = [];
+    // 24 rue saint jacque, paris 5
+    final lat = 48.85197352486211;
+    final lng = 2.346265903974507;
+    //final lat = 48.861887595139585;
+    //final lng = 2.351825150146367;
 
     final response = await http.post(
       Uri.parse('http://127.0.0.1:8080/get-places'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
-      body: jsonEncode(<String, String>{
-        'address': '123 somewhere',
+      body: jsonEncode({
+        'includedTypes': ['restaurant'],
+        'rankPreference': 'distance',
+        'locationRestriction': {
+          'circle': {
+            'center': {
+              'latitude': lat,
+              'longitude': lng,
+            },
+            'radius': 500.0,
+          },
+        },
       }),
     );
 
