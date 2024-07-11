@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:flutter_form_builder/flutter_form_builder.dart';
 
 const Map<String, int> dayNamesIndex = {
   'Monday': 0,
@@ -98,6 +99,15 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
     return places;
   }
 
+  void showFilters(BuildContext context) async {
+    await showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AutourFilters();
+      }
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
@@ -109,7 +119,7 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
           title: Padding(
             padding: const EdgeInsets.symmetric(vertical: 20.0),
             child: ElevatedButton(
-              onPressed: () => searchAround(),
+              onPressed: () => showFilters(context),
               child: Text('Autour'),
             ),
           ),
@@ -363,6 +373,113 @@ class Hour {
       day: json['day'],
       hour: json['hour'],
       minute: json['minute'],
+    );
+  }
+}
+
+class AutourFilters extends StatelessWidget {
+  final _formKey = GlobalKey<FormState>();
+  List<String> _days = ['M', 'T', 'W', 'Th', 'F', 'S', 'Su'];
+  List<String> _hours = [
+    "00:00", "00:30", "01:00", "01:30", "02:00", "02:30", "03:00", "03:30",
+    "04:00", "04:30", "05:00", "05:30", "06:00", "06:30", "07:00", "07:30",
+    "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+    "12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30",
+    "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30",
+    "20:00", "20:30", "21:00", "21:30", "22:00", "22:30", "23:00", "23:30",
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text("Filters"),
+      content: FormBuilder(
+        key: _formKey,
+        child: Column(
+          children: [
+            // Display current location
+            Text("Current location goes here"),
+
+            // Open on
+            FormBuilderCheckboxGroup<String>(
+              autovalidateMode: AutovalidateMode.onUserInteraction,
+              decoration: const InputDecoration(
+                  labelText: 'Open on'),
+              name: '_days',
+              options: _days
+                  .map(
+                    (day) => FormBuilderFieldOption(value: day)
+                  ).toList(),
+              //onChanged: _onChanged,
+              separator: const VerticalDivider(
+                width: 10,
+                thickness: 5,
+                color: Colors.red,
+              ),
+            ),
+
+            // Open before
+            FormBuilderDropdown<String>(
+              name: 'hours_before',
+              decoration: InputDecoration(
+                labelText: 'Open before',
+              ),
+              items: _hours
+                  .map((hour) => DropdownMenuItem(
+                        value: hour,
+                        child: Text(hour),
+                      ))
+                  .toList(),
+            ),
+
+            // Open after
+            FormBuilderDropdown<String>(
+              name: 'hours_after',
+              decoration: InputDecoration(
+                labelText: 'Open after',
+              ),
+              items: _hours
+                  .map((hour) => DropdownMenuItem(
+                        value: hour,
+                        child: Text(hour),
+                      ))
+                  .toList(),
+            ),
+
+            // Open now
+            FormBuilderCheckbox(
+              name: 'open_now',
+              title: const Text('Open now'),
+              initialValue: false,
+            ),
+
+            // TODO: allow to set the radius of the search
+
+          ]
+        )
+      ),
+
+      actions: <Widget>[
+        TextButton(
+          style: TextButton.styleFrom(
+            textStyle: Theme.of(context).textTheme.labelLarge,
+          ),
+          child: const Text('Cancel'),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
+        TextButton(
+          style: TextButton.styleFrom(
+            textStyle: Theme.of(context).textTheme.labelLarge,
+          ),
+          child: const Text('Search'),
+          onPressed: () {
+            // TODO: searchNearby
+            Navigator.of(context).pop();
+          },
+        ),
+      ],
     );
   }
 }
