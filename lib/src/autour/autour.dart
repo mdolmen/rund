@@ -46,14 +46,10 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
     _tabController.dispose();
   }
 
-  void searchAround() async {
+  Future<List<Place>> searchNearby() async {
     print("[+] Getting places around...");
     List<Place> places = await getPlaces();
-
-    setState(() {
-      int len = places.length;
-      _places = places;
-    });
+    return places;
   }
 
   /// Call the backend to get the list of places
@@ -103,7 +99,14 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
     await showDialog<void>(
       context: context,
       builder: (BuildContext context) {
-        return AutourFilters();
+        return AutourFilters(
+          searchBtnCallback: () async {
+            List<Place> places = await searchNearby();
+            setState(() {
+              _places = places;
+            });
+          }
+        );
       }
     );
   }
@@ -379,6 +382,12 @@ class Hour {
 
 class AutourFilters extends StatelessWidget {
   final _formKey = GlobalKey<FormState>();
+  final Function() searchBtnCallback;
+
+  AutourFilters({
+    required this.searchBtnCallback,
+  });
+
   List<String> _days = ['M', 'T', 'W', 'Th', 'F', 'S', 'Su'];
   List<String> _hours = [
     "00:00", "00:30", "01:00", "01:30", "02:00", "02:30", "03:00", "03:30",
@@ -388,6 +397,10 @@ class AutourFilters extends StatelessWidget {
     "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30",
     "20:00", "20:30", "21:00", "21:30", "22:00", "22:30", "23:00", "23:30",
   ];
+
+  void _handleButtonPressed() {
+    searchBtnCallback();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -475,7 +488,7 @@ class AutourFilters extends StatelessWidget {
           ),
           child: const Text('Search'),
           onPressed: () {
-            // TODO: searchNearby
+            _handleButtonPressed();
             Navigator.of(context).pop();
           },
         ),
