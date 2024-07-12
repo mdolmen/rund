@@ -46,21 +46,26 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
     _tabController.dispose();
   }
 
-  Future<List<Place>> searchNearby(String filters) async {
+  Future<List<Place>> _searchNearby(String filters) async {
     print("[+] Getting places around...");
 
-    Map<String, dynamic> filtersJson = formatFilters(filters);
+    Map<String, dynamic> filtersJson = _formatFilters(filters);
 
     // TODO: don't call the backend if on offline mode
 
-    List<Place> places = await getPlaces();
+    //List<Place> places = await _getPlaces();
+
+    // TODO: add all the places to local db
+    LocalDatabase db = LocalDatabase();
+
+    // TODO: apply filter to places from local db, return only places to display
 
     return places;
   }
 
   /// Call the backend to get the list of places
   /// Returns JSON data parseable into Place objects.
-  Future<List<Place>> getPlaces() async {
+  Future<List<Place>> _getPlaces() async {
     List<Place> places = [];
     // 24 rue saint jacque, paris 5
     final lat = 48.85197352486211;
@@ -102,7 +107,7 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
   }
 
   /// Formats a string to a valide json string and returns a json object.
-  Map<String, dynamic> formatFilters(String filters) {
+  Map<String, dynamic> _formatFilters(String filters) {
     // Put double quotes around keys
     String jsonString = filters.replaceAllMapped(RegExp(r'(\w+):'), (match) => '"${match[1]}":');
 
@@ -119,13 +124,13 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
     return filtersJson;
   }
 
-  void showFilters(BuildContext context) async {
+  void _showFilters(BuildContext context) async {
     await showDialog<void>(
       context: context,
       builder: (BuildContext context) {
         return AutourFilters(
           searchBtnCallback: (filters) async {
-            List<Place> places = await searchNearby(filters);
+            List<Place> places = await _searchNearby(filters);
             setState(() {
               _places = places;
             });
@@ -146,7 +151,7 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
           title: Padding(
             padding: const EdgeInsets.symmetric(vertical: 20.0),
             child: ElevatedButton(
-              onPressed: () => showFilters(context),
+              onPressed: () => _showFilters(context),
               child: Text('Autour'),
             ),
           ),
