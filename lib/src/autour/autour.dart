@@ -46,9 +46,15 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
     _tabController.dispose();
   }
 
-  Future<List<Place>> searchNearby() async {
+  Future<List<Place>> searchNearby(String filters) async {
     print("[+] Getting places around...");
+
+    Map<String, dynamic> filtersJson = formatFilters(filters);
+
+    // TODO: don't call the backend if on offline mode
+
     List<Place> places = await getPlaces();
+
     return places;
   }
 
@@ -95,13 +101,31 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
     return places;
   }
 
+  /// Formats a string to a valide json string and returns a json object.
+  Map<String, dynamic> formatFilters(String filters) {
+    // Put double quotes around keys
+    String jsonString = filters.replaceAllMapped(RegExp(r'(\w+):'), (match) => '"${match[1]}":');
+
+    // Put double quotes around values inside arrays
+    jsonString = jsonString.replaceAllMapped(RegExp(r'\[([^\]]+)\]'), (match) {
+      String content = match[1] ?? "{}";
+      List<String> values = content.split(',').map((v) => v.trim()).toList();
+      String quotedValues = values.map((v) => '"$v"').join(', ');
+      return '[$quotedValues]';
+    });
+
+    Map<String, dynamic> filtersJson = json.decode(jsonString);
+
+    return filtersJson;
+  }
+
   void showFilters(BuildContext context) async {
     await showDialog<void>(
       context: context,
       builder: (BuildContext context) {
         return AutourFilters(
-          searchBtnCallback: () async {
-            List<Place> places = await searchNearby();
+          searchBtnCallback: (filters) async {
+            List<Place> places = await searchNearby(filters);
             setState(() {
               _places = places;
             });
@@ -381,8 +405,8 @@ class Hour {
 }
 
 class AutourFilters extends StatelessWidget {
-  final _formKey = GlobalKey<FormState>();
-  final Function() searchBtnCallback;
+  final _formKey = GlobalKey<FormBuilderState>();
+  final Function(String) searchBtnCallback;
 
   AutourFilters({
     required this.searchBtnCallback,
@@ -399,7 +423,9 @@ class AutourFilters extends StatelessWidget {
   ];
 
   void _handleButtonPressed() {
-    searchBtnCallback();
+    _formKey.currentState?.validate();
+    String? filters = _formKey.currentState?.instantValue.toString();
+    searchBtnCallback(filters ?? "{}");
   }
 
   @override
@@ -418,7 +444,8 @@ class AutourFilters extends StatelessWidget {
               autovalidateMode: AutovalidateMode.onUserInteraction,
               decoration: const InputDecoration(
                   labelText: 'Open on'),
-              name: '_days',
+              name: 'days',
+              initialValue: ['M', 'T', 'W', 'Th', 'F', 'S', 'Su'],
               options: _days
                   .map(
                     (day) => FormBuilderFieldOption(value: day)
@@ -433,7 +460,7 @@ class AutourFilters extends StatelessWidget {
 
             // Open before
             FormBuilderDropdown<String>(
-              name: 'hours_before',
+              name: 'open_before',
               decoration: InputDecoration(
                 labelText: 'Open before',
               ),
@@ -447,7 +474,7 @@ class AutourFilters extends StatelessWidget {
 
             // Open after
             FormBuilderDropdown<String>(
-              name: 'hours_after',
+              name: 'open_after',
               decoration: InputDecoration(
                 labelText: 'Open after',
               ),
