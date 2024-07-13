@@ -348,6 +348,13 @@ class Location {
   String toString() {
     return 'Location(lat: $lat, lng: $lng)';
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'lat': lat,
+      'lng': lng
+    };
+  }
 }
 
 class OpeningHours {
@@ -370,6 +377,14 @@ class OpeningHours {
       weekdayDescriptions: List<String>.from(json['weekdayDescriptions']),
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'openNow': openNow,
+      'periods': periods.map((period) => period.toJson()).toList(),
+      'weekdayDescriptions': weekdayDescriptions
+    };
+  }
 }
 
 class Period {
@@ -386,6 +401,13 @@ class Period {
       open: Hour.fromJson(json['open']),
       close: Hour.fromJson(json['close']),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'open': open.toJson(),
+      'close': close.toJson()
+    };
   }
 }
 
@@ -406,6 +428,14 @@ class Hour {
       hour: json['hour'],
       minute: json['minute'],
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'day': day,
+      'hour': hour,
+      'minute': minute
+    };
   }
 }
 
