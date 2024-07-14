@@ -8,6 +8,8 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 
+import 'database_helper.dart';
+
 const Map<String, int> dayNamesIndex = {
   'Monday': 0,
   'Tuesday': 1,
@@ -26,6 +28,8 @@ class AutourScreen extends StatefulWidget {
 }
 
 class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
+  final dbHelper = DatabaseHelper();
+
   late PageController _pageViewController;
   late TabController _tabController;
   int _currentPageIndex = 0;
@@ -53,10 +57,14 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
 
     // TODO: don't call the backend if on offline mode
 
-    //List<Place> places = await _getPlaces();
+    List<Place> places = await _getPlaces();
 
-    // TODO: add all the places to local db
-    LocalDatabase db = LocalDatabase();
+    // Add all the places to the local db
+    for (final place in places) {
+      String loc = place.location.toString();
+      print("[+] Adding place with location: $loc");
+      _insertPlace(place);
+    }
 
     // TODO: apply filter to places from local db, return only places to display
 
@@ -101,7 +109,6 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
     } else {
       throw Exception('[-] Failed to get places.');
     }
-    print(places.length);
 
     return places;
   }
@@ -138,6 +145,17 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
         );
       }
     );
+  }
+
+  Future<void> _insertPlace(Place place) async {
+    await dbHelper.insertPlace({
+      'formatted_address': place.formattedAddress,
+      'google_maps_uri': place.googleMapsUri,
+      'primary_type': place.primaryType,
+      'display_name': place.displayName,
+      'location': json.encode(place.location.toJson()),
+      'current_opening_hours': json.encode(place.currentOpeningHours?.toJson()),
+    });
   }
 
   @override
@@ -317,7 +335,6 @@ class Place {
   });
 
   factory Place.fromJson(Map<String, dynamic> json) {
-    //print(json);
     return Place(
       formattedAddress: json['formattedAddress'],
       googleMapsUri: json['googleMapsUri'],
@@ -351,8 +368,8 @@ class Location {
 
   Map<String, dynamic> toJson() {
     return {
-      'lat': lat,
-      'lng': lng
+      'latitude': lat,
+      'longitude': lng
     };
   }
 }
@@ -369,7 +386,6 @@ class OpeningHours {
   });
 
   factory OpeningHours.fromJson(Map<String, dynamic> json) {
-    print(json);
     final List<dynamic> periodsJson = json['periods'];
     return OpeningHours(
       openNow: json['openNow'],
