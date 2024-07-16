@@ -10,6 +10,8 @@ import 'package:flutter_form_builder/flutter_form_builder.dart';
 
 import 'database_helper.dart';
 
+const String BACKEND_URL = "http://vps-433a4dd6.vps.ovh.net:8080";
+
 const Map<String, int> dayNamesIndex = {
   'Monday': 0,
   'Tuesday': 1,
@@ -82,7 +84,7 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
     //final lng = 2.351825150146367;
 
     final response = await http.post(
-      Uri.parse('http://127.0.0.1:8080/get-places'),
+      Uri.parse(BACKEND_URL+'/get-places-dev'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
