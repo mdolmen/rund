@@ -11,6 +11,7 @@ import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'database_helper.dart';
 
 const String BACKEND_URL = "http://vps-433a4dd6.vps.ovh.net:8080";
+const String API_KEY_GEOCODE = "";
 
 const Map<String, int> dayNamesIndex = {
   'Monday': 0,
@@ -113,6 +114,35 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
     }
 
     return places;
+  }
+
+  /// Convert coordinates to human-readable address
+  Future<String> _reverseGeocode(Location currentPosition) async {
+    String address;
+
+    final url = Uri.https(
+      'geocode.maps.co',
+      '/reverse',
+      {
+        'lat': currentPosition.lat.toString(),
+        'lon': currentPosition.lng.toString(),
+        'api_key': API_KEY_GEOCODE,
+      },
+    );
+
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      // Parse JSON to Place object
+      final Map<String, dynamic> jsonResponse =
+              json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      address = jsonResponse['display_name'];
+    } else {
+      String coords = currentPosition.toString();
+      throw Exception('[-] Failed to reverse geocode: $coords');
+    }
+
+    return address;
   }
 
   /// Formats a string to a valide json string and returns a json object.
