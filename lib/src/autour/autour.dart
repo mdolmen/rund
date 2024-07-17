@@ -39,6 +39,7 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
   int _currentPageIndex = 0;
   bool _searchOngoing = false;
   List<Place> _places = [];
+  String _lastKnownPosition = "";
 
   @override
   void initState() {
@@ -218,6 +219,49 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
     );
   }
 
+  Future<String> _getCurrentAddress() async {
+    Location currentPosition = await _determinePosition();
+    String currentAddress = await _reverseGeocode(currentPosition);
+
+    return currentAddress;
+  }
+
+  /// Open a dialogbox to show the address for the current position.
+  void _showCurrentPosition(BuildContext context) async {
+    if (_lastKnownPosition == "") {
+      String currentAddress = await _getCurrentAddress();
+      _lastKnownPosition = currentAddress;
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Last known position'),
+          content: Text(_lastKnownPosition),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Update'),
+              onPressed: () {
+                _getCurrentAddress().then((value) {
+                  setState(() {
+                    _lastKnownPosition = value;
+                  });
+                });
+              },
+            ),
+            TextButton(
+              child: const Text('Close'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      }
+    );
+  }
+
   Future<void> _insertPlace(Place place) async {
     await dbHelper.insertPlace({
       'formatted_address': place.formattedAddress,
@@ -237,12 +281,38 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
     return CustomScrollView(
       slivers: [
         SliverAppBar(
-          title: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20.0),
-            child: ElevatedButton(
-              onPressed: () => _showFilters(context),
-              child: Text('Autour'),
-            ),
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Expanded(
+                child: Container(
+                  alignment: Alignment.centerRight,
+                  child: IconButton(
+                    iconSize: 30,
+                    icon: const Icon(Icons.pin_drop),
+                    onPressed: () => _showCurrentPosition(context),
+                    padding: EdgeInsets.zero,
+                  ),
+                ),
+              ),
+
+              Expanded(
+                child: Container(
+                  alignment: Alignment.center,
+                  child: ElevatedButton(
+                    onPressed: () => _showFilters(context),
+                    child: Text('Autour'),
+                  ),
+                ),
+              ),
+
+              Expanded(
+                child: Container(
+                  alignment: Alignment.center,
+                ),
+              ),
+
+            ],
           ),
           pinned: true,
         ),
