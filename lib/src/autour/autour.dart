@@ -477,11 +477,13 @@ class Place {
 
   factory Place.fromJson(Map<String, dynamic> json) {
     return Place(
-      formattedAddress: json['formattedAddress'],
-      googleMapsUri: json['googleMapsUri'],
-      primaryType: json['primaryType'],
-      displayName: json['displayName']['text'],
-      location: Location.fromJson(json['location']),
+      formattedAddress: json['formattedAddress'] ?? "Unknown address",
+      googleMapsUri: json['googleMapsUri'] ?? "Unknown Google Maps Uri",
+      primaryType: json['primaryType'] ?? "Unknown primary type",
+      displayName: json['displayName']['text'] ?? "displayName",
+      location: json['location'] != null
+        ? Location.fromJson(json['location'])
+        : Location(lat: -360, lng: -360),
       currentOpeningHours: json['currentOpeningHours'] != null
         ? OpeningHours.fromJson(json['currentOpeningHours'])
         : null,
