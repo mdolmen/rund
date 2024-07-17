@@ -39,6 +39,7 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
   int _currentPageIndex = 0;
   bool _searchOngoing = false;
   List<Place> _places = [];
+  Location _lastKnownCoords = Location(lat:-360, lng:-360); // unvalid gps coords
   String _lastKnownPosition = "";
 
   @override
@@ -80,14 +81,14 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
   /// Returns JSON data parseable into Place objects.
   Future<List<Place>> _getPlaces() async {
     List<Place> places = [];
-    // 24 rue saint jacque, paris 5
-    final lat = 48.85197352486211;
-    final lng = 2.346265903974507;
-    //final lat = 48.861887595139585;
-    //final lng = 2.351825150146367;
+
+    if (_lastKnownCoords.lat == -360 && _lastKnownCoords.lng == -360) {
+      String currentAddress = await _getCurrentAddress();
+      _lastKnownPosition = currentAddress;
+    }
 
     final response = await http.post(
-      Uri.parse(BACKEND_URL+'/get-places-dev'),
+      Uri.parse(BACKEND_URL+'/get-places'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -97,8 +98,8 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
         'locationRestriction': {
           'circle': {
             'center': {
-              'latitude': lat,
-              'longitude': lng,
+              'latitude': _lastKnownCoords.lat,
+              'longitude': _lastKnownCoords.lng,
             },
             'radius': 500.0,
           },
@@ -222,6 +223,7 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
   Future<String> _getCurrentAddress() async {
     Location currentPosition = await _determinePosition();
     String currentAddress = await _reverseGeocode(currentPosition);
+    _lastKnownCoords = currentPosition;
 
     return currentAddress;
   }
