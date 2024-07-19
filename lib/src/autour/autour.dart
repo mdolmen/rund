@@ -351,17 +351,15 @@ class PlaceListItem extends StatelessWidget {
     required this.placeData,
   });
 
-  @override
-  void initState() {
-    _todayIdx = dayNamesIndex[getDayName()] ?? -1;
-  }
-
   String getDayName() {
     return DateFormat('EEEE').format(DateTime.now());
   }
 
   @override
   Widget build(BuildContext context) {
+    // Get today's index
+    _todayIdx = dayNamesIndex[getDayName()] ?? -1;
+
     final String? currentOpeningHours =
             placeData.currentOpeningHours?.weekdayDescriptions[_todayIdx];
     final bool isOpen = placeData.currentOpeningHours?.openNow ?? false;
