@@ -101,20 +101,44 @@ def get_latitude_band_boundaries(band_letter):
 
 def get_utm_zone(lat, lon):
     """
-    Get the UTM zone a GPS point belongs to and convert its coords to the UTM
-    system.
+    Get the UTM zone a GPS point belongs to and convert its coords to the UTM system.
+    Details about UTM and list of exceptions: https://www.smallfarmlink.org/education/utm.
 
     :param lat: Latitude.
     :param lon: Longitude.
 
     :return: UTM zone and latitude band.
     """
-    # Do the coordinates transformation
+    # Determine the UTM zone
     utm_zone = int((lon + 180) / 6) + 1
 
     # Determine the latitude band
     lat_band_letters = "CDEFGHJKLMNPQRSTUVWX"
-    lat_band = lat_band_letters[int((lat + 80) / 8)]
+
+    # Handle special case for latitude band 'X' (72°N to 84°N)
+    if lat >= 72:
+        lat_band = 'X'
+    else:
+        lat_band = lat_band_letters[int((lat + 80) / 8)]
+
+    # Handle special exceptions for certain zones and bands
+    if lat_band == 'X' and 72 <= lat < 84:  # Special handling for band 'X'
+        if 9 <= lon < 21:
+            utm_zone = 31  # Zone 31X
+        elif 21 <= lon < 33:
+            utm_zone = 33  # Zone 33X
+        elif 33 <= lon < 42:
+            utm_zone = 35  # Zone 35X
+        elif lon >= 42:
+            utm_zone = 37  # Zone 37X
+
+    # Handle the special case of zone 32V (West coast of Norway)
+    if lat_band == 'V' and 56 <= lat < 64 and 3 <= lon < 12:
+        utm_zone = 32  # Zone 32V expanded from 6° to 9°
+
+    # Handle the narrowing of zone 31V due to expansion of 32V
+    if lat_band == 'V' and 56 <= lat < 64 and lon < 3:
+        utm_zone = 31  # Zone 31V
 
     return utm_zone, lat_band
 
