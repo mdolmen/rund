@@ -52,6 +52,7 @@ def get_utm_zone_boundaries(zone, band):
     bounds["west_lon"] = central_meridian - 3
     bounds["east_lon"] = central_meridian + 3
 
+    # Get and combine north/south bounds with east/west ones
     bounds = bounds | get_latitude_band_boundaries(band)
     print(f"DEBUG: boundaries = {bounds}")
 
@@ -162,12 +163,18 @@ def find_area(boundaries, lat, lon):
     :return: The coordinates of the subzone and the coords of the area within
     the virtually splitted map.
     """
-    # Get UTM zone, latitude band and convert GPS coords to UTM ones
+    # Get UTM zone and latitude band
     utm_zone, lat_band = get_utm_zone(lat, lon)
     print(f"DEBUG: utm zone = {utm_zone}, lat band = {lat_band}")
 
     corner_x = boundaries["west_lon"]
     corner_y = boundaries["south_lat"]
+
+    # At that point we have the UTM zone/lat band. Next step is to get the
+    # subzone coordinates. Reminder: subzones are 1 degree lon x 1 degree lat.
+    subzone_x = math.floor(lon)
+    subzone_y = math.floor(lat)
+    print(f"DEBUG: subzone x = {subzone_x}, subzone y = {subzone_y}")
 
     # An UTM zone is splitted into 48 subzones of 1 degree lon x 1 degree lat.
     # Each of this subzone is divided into 64 pieces horizontally so that we can
@@ -178,12 +185,6 @@ def find_area(boundaries, lat, lon):
     # the request to the Places API.
     area_width = 1 / 64
     area_height = 1 / 128
-
-    # At that point we have the UTM zone/lat band. Next step is to get the
-    # subzone coordinates. Reminder: subzones are 1 degree lon x 1 degree lat.
-    subzone_x = math.floor(lon)
-    subzone_y = math.floor(lat)
-    print(f"DEBUG: subzone x = {subzone_x}, subzone y = {subzone_y}")
 
     # Now we need the coordinates of the area inside that subzone. We need the
     # column index to flip the bitmap accordingly and the row index to know
