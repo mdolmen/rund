@@ -54,7 +54,7 @@ class Database:
         SELECT subz.subz_id
         FROM autour.subzones AS subz
         JOIN autour.zones AS z
-            ON subz.subz_zone = z.z_id
+          ON subz.subz_zone = z.z_id
         WHERE subz.subz_longitude = %s
           AND subz.subz_latitude = %s
           AND z.z_number = %s
