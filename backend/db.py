@@ -22,7 +22,7 @@ class Database:
         try:
             cursor = self.conn.cursor()
             cursor.execute(request, args)
-            result = cursor.fetchone()
+            result = cursor.fetchall()
             self.conn.commit()
             cursor.close()
         except (Exception, psycopg2.Error) as error:
