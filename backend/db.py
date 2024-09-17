@@ -32,6 +32,22 @@ class Database:
 
         return result
 
+    def get_country(self, country_name):
+        # A Place in United States has 'USA' as country name in the formatted
+        # address field (we have 'United States' in our db for the 'nicename').
+        request = """
+        SELECT country_id FROM countries
+        WHERE country_nicename = %s
+          OR country_iso3 = %s
+        """
+        print(f"country name = {country_name}")
+        result = self.execute_request(request, (country_name, country_name))
+
+        if result:
+            return result[0]
+        else:
+            return 0
+
     def get_subzone(self, longitude, latitude, number, band):
         subzone_id = 0
         request = """
