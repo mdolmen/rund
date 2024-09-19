@@ -44,7 +44,7 @@ class Database:
         result = self.execute_request(request, (country_name, country_name))
 
         if result:
-            return result[0]
+            return result[0][0]
         else:
             return 0
 
@@ -66,7 +66,7 @@ class Database:
         print(f"DEBUG: {result}")
 
         if result:
-            return result[0]
+            return result[0][0]
         else:
             return 0
 
