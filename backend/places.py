@@ -2,6 +2,8 @@ import json
 
 from db import Database
 
+SUBZONE_SPLIT_X = 64
+
 class Places:
     def __init__(self):
         self.db = Database()
@@ -52,11 +54,18 @@ class Places:
 
         return
 
-    def add_places(self, places, area_id, area_x):
+    def add_places(self, places, area_id, area_x, bitmap):
         print(f"DEBUG: adding places in area {area_id}")
 
         for place in places:
             self.add_place(place, area_id, area_x)
 
+        # update bitmap of covered areas
+        self.set_area_bitmap(area_id, area_x, bitmap)
+
     def get_area_bitmap(self, subzone_x, subzone_y, area_y):
         return self.db.get_area_bitmap(subzone_x, subzone_y, area_y)
+
+    def set_area_bitmap(self, area_id, area_x, bitmap):
+        bitmap |= 1 << (SUBZONE_SPLIT_X - 1 - area_x)
+        self.db.set_area_bitmap(area_id, bitmap)
