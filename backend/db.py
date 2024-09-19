@@ -32,6 +32,19 @@ class Database:
 
         return result
 
+    def execute_request_noresult(self, request, args):
+        result = None
+
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute(request, args)
+            self.conn.commit()
+            cursor.close()
+        except (Exception, psycopg2.Error) as error:
+            print(f"Error while executing an SQL request")
+            print(f"\n\terror: {error}")
+            print(f"\n\trequest: {request}")
+
     def get_country(self, country_name):
         # A Place in United States has 'USA' as country name in the formatted
         # address field (we have 'United States' in our db for the 'nicename').
@@ -203,3 +216,12 @@ class Database:
             area_bitmap = result[0][1]
 
         return area_id, area_bitmap
+
+    def set_area_bitmap(self, area_id, bitmap):
+        request = """
+        UPDATE autour.area_covered
+        SET area_bitmap = %s
+        WHERE area_id = %s;
+        """
+
+        self.execute_request_noresult(request, (bitmap, area_id))
