@@ -5,10 +5,8 @@ from geopy.distance import geodesic
 import folium
 import math
 
-ZONE_SPLIT_X = 1/6
-ZONE_SPLIT_Y = 1/8
-SUBZONE_SPLIT_X = 1/64
-SUBZONE_SPLIT_Y = 1/128
+SUBZONE_SPLIT_X = 64
+SUBZONE_SPLIT_Y = 128
 
 m = folium.Map()
 
@@ -167,9 +165,6 @@ def find_area(boundaries, lat, lon):
     utm_zone, lat_band = get_utm_zone(lat, lon)
     print(f"DEBUG: utm zone = {utm_zone}, lat band = {lat_band}")
 
-    corner_x = boundaries["west_lon"]
-    corner_y = boundaries["south_lat"]
-
     # At that point we have the UTM zone/lat band. Next step is to get the
     # subzone coordinates. Reminder: subzones are 1 degree lon x 1 degree lat.
     subzone_x = math.floor(lon)
@@ -180,27 +175,33 @@ def find_area(boundaries, lat, lon):
     # Each of this subzone is divided into 64 pieces horizontally so that we can
     # have a 64-bit integer as a bitmap to keep track of the area status
     # (do we already have the places inside it or not).
-    # Vertically it si splitted into 128 pieces (arbitrary). The bigger distance
+    # Vertically it is splitted into 128 pieces (arbitrary). The bigger distance
     # in km between width and height will be chosen to compute the radius for
     # the request to the Places API.
-    area_width = 1 / 64
-    area_height = 1 / 128
+    area_width = 1 / SUBZONE_SPLIT_X
+    area_height = 1 / SUBZONE_SPLIT_Y
 
     # Now we need the coordinates of the area inside that subzone. We need the
     # column index to flip the bitmap accordingly and the row index to know
     # which bitmap to modify. Those bitmaps are integer in the database.
-    row = math.floor((lon - corner_x) / SUBZONE_SPLIT_X)
-    column = math.floor((lat - corner_y) / SUBZONE_SPLIT_Y)
-    print(f"area row = {row}, column = {column}")
+    # (area_x, area_y) is the corner of the area. We need to return the width and
+    # hieght of the area to latter compute the center of the area.
+    print(f"DEBUG: find_area, west = {boundaries["west_lon"]}, east = {boundaries["east_lon"]}")
+    print(f"DEBUG: find_area, south = {boundaries["south_lat"]}, north = {boundaries["north_lat"]}")
+    print(f"DEBUG: find_area, lon = {lon}, subzone_x = {subzone_x}, subzone_split_x = {SUBZONE_SPLIT_X}")
+    print(f"DEBUG: find_area, lat = {lat}, subzone_y = {subzone_y}, subzone_split_y = {SUBZONE_SPLIT_Y}")
+    area_x = math.floor((lon - subzone_x) / area_width)
+    area_y = math.floor((lat - subzone_y) / area_height)
+    print(f"area area_x = {area_x}, area_y = {area_y}")
 
-    return subzone_x, subzone_y, row, column
+    return subzone_x, subzone_y, area_x, area_y, area_width, area_height
 
 def get_area(lat, lon):
     zone, band = get_utm_zone(lat, lon)
     
     bounds = get_utm_zone_boundaries(zone, band)
 
-    subzone_x, subzone_y, area_x, area_y = find_area(bounds, lat, lon)
+    subzone_x, subzone_y, area_x, area_y, area_width, area_height = find_area(bounds, lat, lon)
 
     # TODO: sql query to get the bitmap (area_y) for the subzone (subzone_x, subzone_y)
 
@@ -210,4 +211,4 @@ def get_area(lat, lon):
 
     # TODO: bitmap | (1 < column) (after request to Places API)
 
-    return zone, band, subzone_x, subzone_y, area_x, area_y
+    return zone, band, subzone_x, subzone_y, area_x, area_y, area_width, area_height
