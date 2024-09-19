@@ -40,7 +40,6 @@ class Database:
         WHERE country_nicename = %s
           OR country_iso3 = %s
         """
-        print(f"country name = {country_name}")
         result = self.execute_request(request, (country_name, country_name))
 
         if result:
@@ -119,8 +118,66 @@ class Database:
             self.execute_request(request, (subzone_id, row))
         print(f"DEBUG: 128 blank row added for subzone {subzone_id}")
 
-    # TODO
-    def insert_place(self):
+    def insert_place(self,
+        formatted_address,
+        google_maps_uri,
+        primary_type,
+        display_name,
+        longitude,
+        latitude,
+        current_opening_hours,
+        country,
+        area_id,
+        area_x
+    ) -> None:
+        request = """
+        INSERT INTO places(
+            place_formatted_address,
+            place_google_maps_uri,
+            place_primary_type,
+            place_display_name,
+            place_longitude,
+            place_latitude,
+            place_current_opening_hours,
+            place_country,
+            place_area_id,
+            place_area_col_in_subzone,
+            last_updated
+        )
+        VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+        ON CONFLICT (place_formatted_address)
+        DO
+        UPDATE
+        SET
+            place_formatted_address = EXCLUDED.place_formatted_address,
+            place_google_maps_uri = EXCLUDED.place_google_maps_uri,
+            place_primary_type = EXCLUDED.place_primary_type,
+            place_display_name = EXCLUDED.place_display_name,
+            place_longitude = EXCLUDED.place_longitude,
+            place_latitude = EXCLUDED.place_latitude,
+            place_current_opening_hours = EXCLUDED.place_current_opening_hours,
+            place_country = EXCLUDED.place_country,
+            place_area_id = EXCLUDED.place_area_id,
+            place_area_col_in_subzone = EXCLUDED.place_area_col_in_subzone,
+            last_updated = NOW()
+        WHERE
+            EXTRACT(EPOCH FROM (NOW() - places.last_updated)) / 86400 > 7
+        RETURNING place_id;
+        """
+
+        self.execute_request(request, (
+            formatted_address,
+            google_maps_uri,
+            primary_type,
+            display_name,
+            longitude,
+            latitude,
+            current_opening_hours,
+            country,
+            area_id,
+            area_x
+        ))
+
         return
 
     # TODO
