@@ -108,14 +108,14 @@ class Database:
         Add all blank rows for a given subzone.
         """
         request = """
-        INSERT INTO area_covered(area_subzone, area_row_in_subzone)
-        VALUES(%s, %s)
+        INSERT INTO area_covered(area_subzone, area_row_in_subzone, area_bitmap)
+        VALUES(%s, %s, %s)
         RETURNING area_id;
         """
 
         print(f"DEBUG: insert_area_covered")
         for row in range(0, 128):
-            self.execute_request(request, (subzone_id, row))
+            self.execute_request(request, (subzone_id, row, 0))
         print(f"DEBUG: 128 blank row added for subzone {subzone_id}")
 
     def insert_place(self,
@@ -180,9 +180,26 @@ class Database:
 
         return
 
-    # TODO
-    def get_area_covered(self, subzone_x, subzone_y, area_x, area_y):
+    def get_area_bitmap(self, subzone_x, subzone_y, area_y):
         """
-        :return: The bitmap of area covered in in the given subzone.
+        :return: The bitmap of area covered in the given subzone and the
+                 corresponding area id.
         """
-        return
+        area_id = 0
+        area_bitmap = 0
+        request = """
+        SELECT ac.area_id, ac.area_bitmap
+        FROM autour.subzones sz
+        JOIN autour.area_covered ac ON sz.subz_id = ac.area_subzone
+        WHERE sz.subz_longitude = %s
+          AND sz.subz_latitude = %s
+          AND ac.area_row_in_subzone = %s;
+        """
+        result = self.execute_request(request, (subzone_x, subzone_y, area_y))
+        print(f"DEBUG: get_area_bitmap, {subzone_x}, {subzone_y}, {area_y}")
+        print(result)
+        if result:
+            area_id = result[0][0]
+            area_bitmap = result[0][1]
+
+        return area_id, area_bitmap
