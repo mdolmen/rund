@@ -1,3 +1,5 @@
+import json
+
 from db import Database
 
 class Places:
@@ -20,3 +22,41 @@ class Places:
             return
 
         self.db.insert_area_covered(subzone_id)
+
+    def add_place(self, place, area_id, area_x):
+        formatted_address = place.get("formattedAddress", "Unknown")
+        google_maps_uri = place.get("googleMapsUri", "Unknown")
+        primary_type = place.get("primaryType", "Unknown")
+        display_name_tmp = place.get("displayName", "Unknown")
+        display_name = display_name_tmp.get("text", "Unknown")
+        longitude = place["location"]["longitude"]
+        latitude = place["location"]["latitude"]
+        current_opening_hours = place.get("currentOpeningHours", "Unknown")
+        current_opening_hours = json.dumps(current_opening_hours, ensure_ascii=False)
+        country_id = self.db.get_country(place["formattedAddress"].split(" ")[-1])
+
+        print(f"DEBUG: formatted address = {place["formattedAddress"]}")
+
+        self.db.insert_place(
+            formatted_address,
+            google_maps_uri,
+            primary_type,
+            display_name,
+            longitude,
+            latitude,
+            current_opening_hours,
+            country_id,
+            area_id,
+            area_x
+        )
+
+        return
+
+    def add_places(self, places, area_id, area_x):
+        print(f"DEBUG: adding places in area {area_id}")
+
+        for place in places:
+            self.add_place(place, area_id, area_x)
+
+    def get_area_bitmap(self, subzone_x, subzone_y, area_y):
+        return self.db.get_area_bitmap(subzone_x, subzone_y, area_y)
