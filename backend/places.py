@@ -59,6 +59,9 @@ class Places:
 
         self.db.set_area_covered(area_id, True)
 
+    def get_places(self, area_id):
+        return self.db.get_places(area_id)
+
     def get_area(self, row, col):
         return self.db.get_area(row, col)
 

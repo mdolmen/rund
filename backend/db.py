@@ -194,6 +194,21 @@ class Database:
 
         return
 
+    def get_places(self, area_id):
+        request = """
+        SELECT *
+        FROM autour.places
+        WHERE place_area_id = %s;
+        """
+
+        places = []
+        result = self.execute_request(request, (area_id,))
+
+        if result:
+            places = result
+
+        return places
+
     def get_area(self, row, col):
         area_id = 0
         width = 0
