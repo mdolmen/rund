@@ -289,15 +289,19 @@ CREATE TABLE IF NOT EXISTS autour.subzones (
     subz_id SERIAL PRIMARY KEY,
     subz_longitude FLOAT,
     subz_latitude FLOAT,
-    subz_zone INT REFERENCES zones (z_id)
+    subz_zone INT REFERENCES zones (z_id),
+    UNIQUE (subz_longitude, subz_latitude)
 );
 
 CREATE TABLE IF NOT EXISTS autour.area_covered (
     area_id SERIAL PRIMARY KEY,
     area_subzone INT REFERENCES subzones (subz_id),
-    area_row_in_subzone INT,
-    area_bitmap INT,
-    UNIQUE (area_subzone, area_row_in_subzone)
+    area_row INT,
+    area_col INT,
+    area_width FLOAT,
+    area_height FLOAT,
+    area_covered BOOLEAN,
+    UNIQUE (area_subzone, area_row, area_col)
 );
 
 CREATE TABLE IF NOT EXISTS autour.places (
@@ -311,7 +315,6 @@ CREATE TABLE IF NOT EXISTS autour.places (
     place_current_opening_hours TEXT,
     place_country INT REFERENCES countries (country_id),
     place_area_id INT REFERENCES area_covered (area_id),
-    place_area_col_in_subzone INT,
     last_updated DATE,
     UNIQUE (place_formatted_address)
 );

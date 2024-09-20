@@ -9,7 +9,7 @@ class Places:
         self.db = Database()
 
     def subzone_exists(self, longitude, latitude, number, band):
-        return self.db.get_subzone(longitude, latitude, number, band)
+        return self.db.get_subzone(longitude, latitude)
 
     def add_subzone_in_zone(self, longitude, latitude, number, band):
         print("DEBUG: add_subzone_in_zone")
@@ -23,9 +23,7 @@ class Places:
         if subzone_id == 0:
             return
 
-        self.db.insert_area_covered(subzone_id)
-
-    def add_place(self, place, area_id, area_x):
+    def add_place(self, place, area_id):
         formatted_address = place.get("formattedAddress", "Unknown")
         google_maps_uri = place.get("googleMapsUri", "Unknown")
         primary_type = place.get("primaryType", "Unknown")
@@ -48,24 +46,27 @@ class Places:
             latitude,
             current_opening_hours,
             country_id,
-            area_id,
-            area_x
+            area_id
         )
 
         return
 
-    def add_places(self, places, area_id, area_x, bitmap):
+    def add_places(self, places, area_id):
         print(f"DEBUG: adding places in area {area_id}")
 
         for place in places:
-            self.add_place(place, area_id, area_x)
+            self.add_place(place, area_id)
 
-        # update bitmap of covered areas
-        self.set_area_bitmap(area_id, area_x, bitmap)
+        self.db.set_area_covered(area_id, True)
 
-    def get_area_bitmap(self, subzone_x, subzone_y, area_y):
-        return self.db.get_area_bitmap(subzone_x, subzone_y, area_y)
+    def get_area(self, row, col):
+        return self.db.get_area(row, col)
 
-    def set_area_bitmap(self, area_id, area_x, bitmap):
-        bitmap |= 1 << (SUBZONE_SPLIT_X - 1 - area_x)
-        self.db.set_area_bitmap(area_id, bitmap)
+    def get_area_id(self, row, col):
+        return self.db.get_area_id(row, col)
+
+    def is_area_covered(self, area_id):
+        return self.db.get_area_covered(area_id)
+
+    def create_area_covered_entries(self, subzone_id, row, col, width, height):
+        self.db.insert_area_covered(subzone_id, row, col, width, height)

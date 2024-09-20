@@ -1,4 +1,6 @@
 import psycopg2
+import sys
+
 from psycopg2 import sql
 
 class Database:
@@ -29,6 +31,7 @@ class Database:
             print(f"Error while executing an SQL request")
             print(f"\n\terror: {error}")
             print(f"\n\trequest: {request}")
+            sys.exit(1)
 
         return result
 
@@ -60,21 +63,16 @@ class Database:
         else:
             return 0
 
-    def get_subzone(self, longitude, latitude, number, band):
+    def get_subzone(self, longitude, latitude):
         subzone_id = 0
         request = """
         SELECT subz.subz_id
         FROM autour.subzones AS subz
-        JOIN autour.zones AS z
-          ON subz.subz_zone = z.z_id
-        WHERE subz.subz_longitude = %s
-          AND subz.subz_latitude = %s
-          AND z.z_number = %s
-          AND z.z_band = %s;
+        WHERE subz.subz_longitude = %s AND subz.subz_latitude = %s;
         """
 
         print("DEBUG: get_subzone")
-        result = self.execute_request(request, (longitude, latitude, number, band))
+        result = self.execute_request(request, (longitude, latitude))
         print(f"DEBUG: {result}")
 
         if result:
@@ -116,19 +114,26 @@ class Database:
 
         return subzone_id
 
-    def insert_area_covered(self, subzone_id):
+    def insert_area_covered(self, subzone_id, row, col, width, height):
         """
         Add all blank rows for a given subzone.
         """
         request = """
-        INSERT INTO area_covered(area_subzone, area_row_in_subzone, area_bitmap)
-        VALUES(%s, %s, %s)
+        INSERT INTO area_covered(
+            area_subzone,
+            area_row,
+            area_col,
+            area_width,
+            area_height,
+            area_covered
+        )
+        VALUES(%s, %s, %s, %s, %s, %s)
         RETURNING area_id;
         """
 
         print(f"DEBUG: insert_area_covered")
         for row in range(0, 128):
-            self.execute_request(request, (subzone_id, row, 0))
+            self.execute_request(request, (subzone_id, row, col, width, height, False))
         print(f"DEBUG: 128 blank row added for subzone {subzone_id}")
 
     def insert_place(self,
@@ -140,8 +145,7 @@ class Database:
         latitude,
         current_opening_hours,
         country,
-        area_id,
-        area_x
+        area_id
     ) -> None:
         request = """
         INSERT INTO places(
@@ -154,10 +158,9 @@ class Database:
             place_current_opening_hours,
             place_country,
             place_area_id,
-            place_area_col_in_subzone,
             last_updated
         )
-        VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+        VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
         ON CONFLICT (place_formatted_address)
         DO
         UPDATE
@@ -171,7 +174,6 @@ class Database:
             place_current_opening_hours = EXCLUDED.place_current_opening_hours,
             place_country = EXCLUDED.place_country,
             place_area_id = EXCLUDED.place_area_id,
-            place_area_col_in_subzone = EXCLUDED.place_area_col_in_subzone,
             last_updated = NOW()
         WHERE
             EXTRACT(EPOCH FROM (NOW() - places.last_updated)) / 86400 > 7
@@ -187,41 +189,67 @@ class Database:
             latitude,
             current_opening_hours,
             country,
-            area_id,
-            area_x
+            area_id
         ))
 
         return
 
-    def get_area_bitmap(self, subzone_x, subzone_y, area_y):
-        """
-        :return: The bitmap of area covered in the given subzone and the
-                 corresponding area id.
-        """
+    def get_area(self, row, col):
         area_id = 0
-        area_bitmap = 0
+        width = 0
+        height = 0
+        covered = 0
         request = """
-        SELECT ac.area_id, ac.area_bitmap
-        FROM autour.subzones sz
-        JOIN autour.area_covered ac ON sz.subz_id = ac.area_subzone
-        WHERE sz.subz_longitude = %s
-          AND sz.subz_latitude = %s
-          AND ac.area_row_in_subzone = %s;
+        SELECT area_id, area_width, area_height, area_covered
+        FROM autour.area_covered
+        WHERE area_row = %s AND area_col = %s;
         """
-        result = self.execute_request(request, (subzone_x, subzone_y, area_y))
-        print(f"DEBUG: get_area_bitmap, {subzone_x}, {subzone_y}, {area_y}")
+
+        result = self.execute_request(request, (row, col))
+        print(f"DEBUG: get_area, {row}, {col}")
         print(result)
         if result:
             area_id = result[0][0]
-            area_bitmap = result[0][1]
+            width = result[0][1]
+            height = result[0][2]
+            covered = result[0][3]
 
-        return area_id, area_bitmap
+        return area_id, width, height, covered
 
-    def set_area_bitmap(self, area_id, bitmap):
+    def get_area_id(self, row, col):
+        area_id = 0
+        request = """
+        SELECT area_id
+        FROM autour.area_covered
+        WHERE area_row = %s AND area_col = %s;
+        """
+
+        result = self.execute_request(request, (row, col))
+        if result:
+            area_id = result[0][0]
+
+        return area_id
+
+    def get_area_covered(self, area_id):
+        covered = False
+        request = """
+        SELECT area_covered
+        FROM autour.area_covered
+        WHERE area_id = %s
+        """
+
+        result = self.execute_request(request, (area_id,))
+
+        if result:
+            covered = result[0][0]
+
+        return covered
+
+    def set_area_covered(self, area_id, covered):
         request = """
         UPDATE autour.area_covered
-        SET area_bitmap = %s
+        SET area_covered = %s
         WHERE area_id = %s;
         """
 
-        self.execute_request_noresult(request, (bitmap, area_id))
+        self.execute_request_noresult(request, (covered, area_id))
