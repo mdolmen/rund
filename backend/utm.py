@@ -195,12 +195,31 @@ def get_area(lat, lon):
 
     subzone_x, subzone_y, area_x, area_y, area_width, area_height = find_area(bounds, lat, lon)
 
-    # TODO: sql query to get the bitmap (area_y) for the subzone (subzone_x, subzone_y)
-
-    # TODO:
-    # - if bit area_x in the bitmap is set, done
-    # - else request Places API
-
-    # TODO: bitmap | (1 < column) (after request to Places API)
-
     return zone, band, subzone_x, subzone_y, area_x, area_y, area_width, area_height
+
+def longitude_diff_to_km(lat, lon_start, lon_end):
+    """
+    Convert a change in longitude at a specific latitude to a distance in kilometers.
+
+    :param lat: Latitude where the distance is measured.
+    :param lon_start: Starting longitude.
+    :param lon_end: Ending longitude.
+    :return: Distance in kilometers.
+    """
+    print(f"DEBUG: {lat}, {lon_start}, {lon_end}")
+    point_start = (lat, lon_start)
+    point_end = (lat, lon_end)
+    return geodesic(point_start, point_end).kilometers
+
+def latitude_diff_to_km(lat_start, lat_end, lon):
+    """
+    Convert a change in latitude at a specific longitude to a distance in kilometers.
+
+    :param lat_start: Starting latitude.
+    :param lat_end: Ending latitude.
+    :param lon: Longitude where the distance is measured.
+    :return: Distance in kilometers.
+    """
+    point_start = (lat_start, lon)
+    point_end = (lat_end, lon)
+    return geodesic(point_start, point_end).kilometers
