@@ -141,11 +141,6 @@ def get_utm_zone(lat, lon):
 
     return utm_zone, lat_band
 
-def find_1km_area(utm_x, utm_y, utm_zone, lat_band):
-    """
-    Find the 1km-bloc the point belongs to.
-    """
-
 def find_area(boundaries, lat, lon):
     """
     Identify the small area the point belongs to. Area here refers to the basic
@@ -172,12 +167,9 @@ def find_area(boundaries, lat, lon):
     print(f"DEBUG: subzone x = {subzone_x}, subzone y = {subzone_y}")
 
     # An UTM zone is splitted into 48 subzones of 1 degree lon x 1 degree lat.
-    # Each of this subzone is divided into 64 pieces horizontally so that we can
-    # have a 64-bit integer as a bitmap to keep track of the area status
-    # (do we already have the places inside it or not).
-    # Vertically it is splitted into 128 pieces (arbitrary). The bigger distance
-    # in km between width and height will be chosen to compute the radius for
-    # the request to the Places API.
+    # Each of this subzone is divided into 64 pieces horizontally and 128
+    # vertically (arbitrary). The bigger distance in km between width and height
+    # will be chosen to compute the radius for the request to the Places API.
     area_width = 1 / SUBZONE_SPLIT_X
     area_height = 1 / SUBZONE_SPLIT_Y
 
