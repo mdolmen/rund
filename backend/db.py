@@ -80,6 +80,25 @@ class Database:
         else:
             return 0
 
+    def get_subzone_by_id(self, subzone_id):
+        longitude = 0
+        latitude = 0
+        request = """
+        SELECT subz_longitude, subz_latitude
+        FROM subzones
+        WHERE subz_id = %s;
+        """
+
+        print("DEBUG: get_subzone")
+        result = self.execute_request(request, (subzone_id,))
+        print(f"DEBUG: {result}")
+
+        if result:
+            longitude = result[0][0]
+            latitude = result[0][1]
+
+        return longitude, latitude
+
     def insert_zone(self, number, band):
         zone_id = -1
         request = """
