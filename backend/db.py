@@ -209,7 +209,7 @@ class Database:
 
         return places
 
-    def get_area(self, row, col):
+    def get_area_by_coords(self, row, col):
         area_id = 0
         width = 0
         height = 0
@@ -230,6 +230,30 @@ class Database:
             covered = result[0][3]
 
         return area_id, width, height, covered
+
+    def get_area_by_id(self, area_id):
+        subz_id = 0
+        row = 0
+        col = 0
+        width = 0
+        height = 0
+        covered = 0
+        request = """
+        SELECT area_subzone, area_row, area_col, area_width, area_height, area_covered
+        FROM autour.area_covered
+        WHERE area_id = %s;
+        """
+
+        result = self.execute_request(request, (area_id,))
+        if result:
+            subz_id = result[0][0]
+            row = result[0][1]
+            col = result[0][2]
+            width = result[0][3]
+            height = result[0][4]
+            covered = result[0][5]
+
+        return subz_id, row, col, width, height, covered
 
     def get_area_id(self, row, col):
         area_id = 0

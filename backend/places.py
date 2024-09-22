@@ -65,6 +65,9 @@ class Places:
     def get_area(self, row, col):
         return self.db.get_area(row, col)
 
+    def get_area_by_id(self, area_id):
+        return self.db.get_area_by_id(area_id)
+
     def get_area_id(self, row, col):
         return self.db.get_area_id(row, col)
 
