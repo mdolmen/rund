@@ -81,7 +81,7 @@ class Database:
             return 0
 
     def insert_zone(self, number, band):
-        zone_id = 0
+        zone_id = -1
         request = """
         INSERT INTO zones(z_number, z_band)
         VALUES(%s, %s)
@@ -93,12 +93,12 @@ class Database:
         print(f"DEBUG: {result}")
 
         if result:
-            zone_id = result[0]
+            zone_id = result[0][0]
 
         return zone_id
 
     def insert_subzone(self, longitude, latitude, zone_id):
-        subzone_id = 0
+        subzone_id = -1
         request = """
         INSERT INTO subzones(subz_longitude, subz_latitude, subz_zone)
         VALUES(%s, %s, %s)
@@ -110,7 +110,7 @@ class Database:
         print(f"DEBUG: {result}")
 
         if result:
-            subzone_id = result[0]
+            subzone_id = result[0][0]
 
         return subzone_id
 
