@@ -8,6 +8,13 @@ import math
 SUBZONE_SPLIT_X = 64
 SUBZONE_SPLIT_Y = 128
 
+# An UTM zone is splitted into 48 subzones of 1 degree lon x 1 degree lat.
+# Each of this subzone is divided into 64 pieces horizontally and 128
+# vertically (arbitrary). The bigger distance in km between width and height
+# will be chosen to compute the radius for the request to the Places API.
+AREA_WIDTH = 1 / SUBZONE_SPLIT_X
+AREA_HEIGHT = 1 / SUBZONE_SPLIT_Y
+
 m = folium.Map()
 
 def init_utm_transformer(utm_zone, lat_band):
@@ -166,13 +173,6 @@ def find_area(boundaries, lat, lon):
     subzone_y = math.floor(lat)
     print(f"DEBUG: subzone x = {subzone_x}, subzone y = {subzone_y}")
 
-    # An UTM zone is splitted into 48 subzones of 1 degree lon x 1 degree lat.
-    # Each of this subzone is divided into 64 pieces horizontally and 128
-    # vertically (arbitrary). The bigger distance in km between width and height
-    # will be chosen to compute the radius for the request to the Places API.
-    area_width = 1 / SUBZONE_SPLIT_X
-    area_height = 1 / SUBZONE_SPLIT_Y
-
     # Now we need the coordinates of the area inside that subzone. We need the
     # column index to flip the bitmap accordingly and the row index to know
     # which bitmap to modify. Those bitmaps are integer in the database.
@@ -180,22 +180,22 @@ def find_area(boundaries, lat, lon):
     # hieght of the area to latter compute the center of the area.
     print(f"DEBUG: find_area, west = {boundaries["west_lon"]}, east = {boundaries["east_lon"]}")
     print(f"DEBUG: find_area, south = {boundaries["south_lat"]}, north = {boundaries["north_lat"]}")
-    print(f"DEBUG: find_area, lon = {lon}, subzone_x = {subzone_x}, subzone_split_x = {SUBZONE_SPLIT_X}")
-    print(f"DEBUG: find_area, lat = {lat}, subzone_y = {subzone_y}, subzone_split_y = {SUBZONE_SPLIT_Y}")
-    area_x = math.floor((lon - subzone_x) / area_width)
-    area_y = math.floor((lat - subzone_y) / area_height)
+    print(f"DEBUG: find_area, lon = {lon}, subzone_x = {subzone_x}")
+    print(f"DEBUG: find_area, lat = {lat}, subzone_y = {subzone_y}")
+    area_x = math.floor((lon - subzone_x) / AREA_WIDTH)
+    area_y = math.floor((lat - subzone_y) / AREA_HEIGHT)
     print(f"area area_x = {area_x}, area_y = {area_y}")
 
-    return subzone_x, subzone_y, area_x, area_y, area_width, area_height
+    return subzone_x, subzone_y, area_x, area_y
 
 def get_area(lat, lon):
     zone, band = get_utm_zone(lat, lon)
     
     bounds = get_utm_zone_boundaries(zone, band)
 
-    subzone_x, subzone_y, area_x, area_y, area_width, area_height = find_area(bounds, lat, lon)
+    subzone_x, subzone_y, area_x, area_y, = find_area(bounds, lat, lon)
 
-    return zone, band, subzone_x, subzone_y, area_x, area_y, area_width, area_height
+    return zone, band, subzone_x, subzone_y, area_x, area_y
 
 def longitude_diff_to_km(lat, lon_start, lon_end):
     """

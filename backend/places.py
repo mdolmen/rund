@@ -1,5 +1,4 @@
 import json
-import utm
 import requests
 import httpx
 import asyncio
@@ -7,10 +6,12 @@ import builtins
 
 from pydantic import BaseModel
 
+import utm
+from utm import AREA_WIDTH, AREA_HEIGHT
+
 from db import Database
 
 API_KEY_GPLACES = ""
-SUBZONE_SPLIT_X = 64
 
 class Location(BaseModel):
     latitude: float
@@ -99,8 +100,8 @@ class Places:
     def is_area_covered(self, area_id):
         return self.db.get_area_covered(area_id)
 
-    def create_area_covered_entries(self, subzone_id, row, col, width, height):
-        self.db.insert_area_covered(subzone_id, row, col, width, height)
+    def create_area_covered_entries(self, subzone_id, row, col):
+        self.db.insert_area_covered(subzone_id, row, col)
 
     async def get_places(self, params, expansion_level=1):
         """
@@ -120,7 +121,7 @@ class Places:
         area_id = -1
 
         # Find the area in which the point belongs to
-        zone, band, subzone_x, subzone_y, area_row, area_col, area_width, area_height = utm.get_area(
+        zone, band, subzone_x, subzone_y, area_row, area_col = utm.get_area(
             center.latitude, center.longitude
         )
 

@@ -1,7 +1,12 @@
 import psycopg2
 import sys
 
+import utm
+
 from psycopg2 import sql
+
+AREA_WIDTH = 1 / utm.SUBZONE_SPLIT_X
+AREA_HEIGHT = 1 / utm.SUBZONE_SPLIT_Y
 
 class Database:
     def __init__(self):
@@ -133,7 +138,7 @@ class Database:
 
         return subzone_id
 
-    def insert_area_covered(self, subzone_id, row, col, width, height):
+    def insert_area_covered(self, subzone_id, row, col):
         """
         Add all blank rows for a given subzone.
         """
@@ -142,8 +147,6 @@ class Database:
             area_subzone,
             area_row,
             area_col,
-            area_width,
-            area_height,
             area_covered
         )
         VALUES(%s, %s, %s, %s, %s, %s)
@@ -152,7 +155,7 @@ class Database:
 
         print(f"DEBUG: insert_area_covered")
         for row in range(0, 128):
-            self.execute_request(request, (subzone_id, row, col, width, height, False))
+            self.execute_request(request, (subzone_id, row, col, False))
         print(f"DEBUG: 128 blank row added for subzone {subzone_id}")
 
     def insert_place(self,
@@ -230,11 +233,9 @@ class Database:
 
     def get_area_by_coords(self, row, col):
         area_id = 0
-        width = 0
-        height = 0
         covered = 0
         request = """
-        SELECT area_id, area_width, area_height, area_covered
+        SELECT area_id, area_covered
         FROM autour.area_covered
         WHERE area_row = %s AND area_col = %s;
         """
@@ -244,21 +245,17 @@ class Database:
         print(result)
         if result:
             area_id = result[0][0]
-            width = result[0][1]
-            height = result[0][2]
-            covered = result[0][3]
+            covered = result[0][1]
 
-        return area_id, width, height, covered
+        return area_id, covered
 
     def get_area_by_id(self, area_id):
         subz_id = 0
         row = 0
         col = 0
-        width = 0
-        height = 0
         covered = 0
         request = """
-        SELECT area_subzone, area_row, area_col, area_width, area_height, area_covered
+        SELECT area_subzone, area_row, area_col, area_covered
         FROM autour.area_covered
         WHERE area_id = %s;
         """
@@ -268,11 +265,9 @@ class Database:
             subz_id = result[0][0]
             row = result[0][1]
             col = result[0][2]
-            width = result[0][3]
-            height = result[0][4]
-            covered = result[0][5]
+            covered = result[0][3]
 
-        return subz_id, row, col, width, height, covered
+        return subz_id, row, col, covered
 
     def get_area_id(self, row, col):
         area_id = 0
