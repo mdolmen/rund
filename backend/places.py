@@ -101,7 +101,7 @@ class Places:
         return self.db.get_area_covered(area_id)
 
     def create_area_covered_entries(self, subzone_id, row, col):
-        self.db.insert_area_covered(subzone_id, row, col)
+        self.db.insert_areas(subzone_id, row, col)
 
     async def get_places(self, params, expansion_level=1):
         """

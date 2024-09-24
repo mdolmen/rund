@@ -138,7 +138,7 @@ class Database:
 
         return subzone_id
 
-    def insert_area_covered(self, subzone_id, row, col):
+    def insert_areas(self, subzone_id, row, col):
         """
         Add all blank rows for a given subzone.
         """
