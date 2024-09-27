@@ -4,6 +4,7 @@ import sys
 import utm
 
 from psycopg2 import sql
+from concurrent.futures import ThreadPoolExecutor
 
 AREA_WIDTH = 1 / utm.SUBZONE_SPLIT_X
 AREA_HEIGHT = 1 / utm.SUBZONE_SPLIT_Y
@@ -20,8 +21,28 @@ class Database:
         
         self.conn = psycopg2.connect(**conn_params)
 
+        # If this random zone does not exists it means that it's the first
+        # connection. Create all the zones.
+        if self.get_zone_id(31, 'T') == 0:
+            self.init_db()
+
     def __del__(self):
         self.conn.close()
+
+    def init_db(self):
+        """
+        Create zones, subzones and areas. Requires approximately 8GB.
+        """
+        print("[+] Initialising database...")
+
+        # Create zones
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            [executor.submit(self.create_zones_subzones, i) for i in range(1, 60+1)]
+
+    def create_zones_subzones(self, number):
+        for band in "CDEFGHJKLMNPQRSTUVWX":
+            print(f"    [*] Creating zone {str(number)+band}...")
+            zone_id = self.insert_zone(number, band)
 
     def execute_request(self, request, args):
         result = None
@@ -62,6 +83,22 @@ class Database:
           OR country_iso3 = %s
         """
         result = self.execute_request(request, (country_name, country_name))
+
+        if result:
+            return result[0][0]
+        else:
+            return 0
+
+
+    def get_zone_id(self, zone, band):
+        subzone_id = 0
+        request = """
+        SELECT z_id
+        FROM zones
+        WHERE z_number = %s AND z_band = %s;
+        """
+
+        result = self.execute_request(request, (zone, band))
 
         if result:
             return result[0][0]
