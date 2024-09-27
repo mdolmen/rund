@@ -320,6 +320,9 @@ CREATE TABLE IF NOT EXISTS autour.places (
 );
 "
 
+echo "Removing database '$DB_NAME'..."
+psql -h $DB_HOST -p $DB_PORT -U postgres -c "DROP DATABASE IF EXISTS $DB_NAME;"
+
 # Create the database
 echo "Creating database '$DB_NAME'..."
 createdb -h $DB_HOST -p $DB_PORT -U postgres $DB_NAME
