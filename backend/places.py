@@ -33,7 +33,7 @@ class Places:
     def __init__(self):
         self.db = Database()
 
-    def subzone_exists(self, longitude, latitude, number, band):
+    def subzone_exists(self, longitude, latitude):
         return self.db.get_subzone(longitude, latitude)
 
     def add_subzone_in_zone(self, longitude, latitude, number, band):
@@ -88,14 +88,14 @@ class Places:
     def get_places_from_db(self, area_id):
         return self.db.get_places(area_id)
 
-    def get_area(self, row, col):
-        return self.db.get_area(row, col)
+    def get_area(self, x, y):
+        return self.db.get_area(x, y)
 
     def get_area_by_id(self, area_id):
         return self.db.get_area_by_id(area_id)
 
-    def get_area_id(self, row, col):
-        return self.db.get_area_id(row, col)
+    def get_area_id(self, subzone_lon, subzone_lat, x, y):
+        return self.db.get_area_id(subzone_lon, subzone_lat, x, y)
 
     def is_area_covered(self, area_id):
         return self.db.get_area_covered(area_id)

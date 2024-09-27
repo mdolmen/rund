@@ -138,25 +138,30 @@ class Database:
 
         return subzone_id
 
-    def insert_areas(self, subzone_id, row, col):
+    def insert_areas(self, subzone_id):
         """
         Add all blank rows for a given subzone.
         """
         request = """
         INSERT INTO area_covered(
             area_subzone,
-            area_row,
-            area_col,
+            area_x,
+            area_y,
             area_covered
         )
-        VALUES(%s, %s, %s, %s, %s, %s)
+        VALUES(%s, %s, %s, %s)
         RETURNING area_id;
         """
 
-        print(f"DEBUG: insert_area_covered")
-        for row in range(0, 128):
-            self.execute_request(request, (subzone_id, row, col, False))
-        print(f"DEBUG: 128 blank row added for subzone {subzone_id}")
+        # Prepare the data in a list of tuples
+        data = []
+        for x in range(0, 64):
+            for y in range(0, 128):
+                data.append((subzone_id, x, y, False))
+
+        cursor = self.conn.cursor()
+        cursor.executemany(request, data)
+        self.conn.commit()
 
     def insert_place(self,
         formatted_address,
@@ -231,18 +236,16 @@ class Database:
 
         return places
 
-    def get_area_by_coords(self, row, col):
+    def get_area_by_coords(self, x, y):
         area_id = 0
         covered = 0
         request = """
         SELECT area_id, area_covered
         FROM autour.area_covered
-        WHERE area_row = %s AND area_col = %s;
+        WHERE area_x = %s AND area_y = %s;
         """
 
-        result = self.execute_request(request, (row, col))
-        print(f"DEBUG: get_area, {row}, {col}")
-        print(result)
+        result = self.execute_request(request, (x, y))
         if result:
             area_id = result[0][0]
             covered = result[0][1]
@@ -251,11 +254,11 @@ class Database:
 
     def get_area_by_id(self, area_id):
         subz_id = 0
-        row = 0
-        col = 0
+        x = 0
+        y = 0
         covered = 0
         request = """
-        SELECT area_subzone, area_row, area_col, area_covered
+        SELECT area_subzone, area_x, area_y, area_covered
         FROM autour.area_covered
         WHERE area_id = %s;
         """
@@ -263,21 +266,25 @@ class Database:
         result = self.execute_request(request, (area_id,))
         if result:
             subz_id = result[0][0]
-            row = result[0][1]
-            col = result[0][2]
+            x = result[0][1]
+            y = result[0][2]
             covered = result[0][3]
 
-        return subz_id, row, col, covered
+        return subz_id, x, y, covered
 
-    def get_area_id(self, row, col):
+    def get_area_id(self, subzone_lon, subzone_lat, x, y):
         area_id = 0
         request = """
-        SELECT area_id
+        SELECT area_covered.area_id
         FROM autour.area_covered
-        WHERE area_row = %s AND area_col = %s;
+        JOIN autour.subzones ON area_covered.area_subzone = subzones.subz_id
+        WHERE subzones.subz_longitude = %s
+        AND subzones.subz_latitude = %s
+        AND area_covered.area_x = %s
+        AND area_covered.area_y = %s;
         """
 
-        result = self.execute_request(request, (row, col))
+        result = self.execute_request(request, (subzone_lon, subzone_lat, x, y))
         if result:
             area_id = result[0][0]
 

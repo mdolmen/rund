@@ -290,18 +290,16 @@ CREATE TABLE IF NOT EXISTS autour.subzones (
     subz_longitude FLOAT,
     subz_latitude FLOAT,
     subz_zone INT REFERENCES zones (z_id),
-    UNIQUE (subz_longitude, subz_latitude)
+    UNIQUE (subz_longitude, subz_latitude, subz_zone)
 );
 
 CREATE TABLE IF NOT EXISTS autour.area_covered (
     area_id SERIAL PRIMARY KEY,
     area_subzone INT REFERENCES subzones (subz_id),
-    area_row INT,
-    area_col INT,
-    area_width FLOAT,
-    area_height FLOAT,
+    area_x INT,
+    area_y INT,
     area_covered BOOLEAN,
-    UNIQUE (area_subzone, area_row, area_col)
+    UNIQUE (area_subzone, area_x, area_y)
 );
 
 CREATE TABLE IF NOT EXISTS autour.places (

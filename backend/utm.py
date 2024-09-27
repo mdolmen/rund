@@ -169,33 +169,27 @@ def find_area(boundaries, lat, lon):
 
     # At that point we have the UTM zone/lat band. Next step is to get the
     # subzone coordinates. Reminder: subzones are 1 degree lon x 1 degree lat.
-    subzone_x = math.floor(lon)
-    subzone_y = math.floor(lat)
-    print(f"DEBUG: subzone x = {subzone_x}, subzone y = {subzone_y}")
+    subzone_lon = math.floor(lon)
+    subzone_lat = math.floor(lat)
 
     # Now we need the coordinates of the area inside that subzone. We need the
     # column index to flip the bitmap accordingly and the row index to know
     # which bitmap to modify. Those bitmaps are integer in the database.
     # (area_x, area_y) is the corner of the area. We need to return the width and
     # hieght of the area to latter compute the center of the area.
-    print(f"DEBUG: find_area, west = {boundaries["west_lon"]}, east = {boundaries["east_lon"]}")
-    print(f"DEBUG: find_area, south = {boundaries["south_lat"]}, north = {boundaries["north_lat"]}")
-    print(f"DEBUG: find_area, lon = {lon}, subzone_x = {subzone_x}")
-    print(f"DEBUG: find_area, lat = {lat}, subzone_y = {subzone_y}")
-    area_x = math.floor((lon - subzone_x) / AREA_WIDTH)
-    area_y = math.floor((lat - subzone_y) / AREA_HEIGHT)
-    print(f"area area_x = {area_x}, area_y = {area_y}")
+    area_x = math.floor((lon - subzone_lon) / AREA_WIDTH)
+    area_y = math.floor((lat - subzone_lat) / AREA_HEIGHT)
 
-    return subzone_x, subzone_y, area_x, area_y
+    return subzone_lon, subzone_lat, area_x, area_y
 
 def get_area(lat, lon):
     zone, band = get_utm_zone(lat, lon)
     
     bounds = get_utm_zone_boundaries(zone, band)
 
-    subzone_x, subzone_y, area_x, area_y, = find_area(bounds, lat, lon)
+    subzone_lon, subzone_lat, area_x, area_y = find_area(bounds, lat, lon)
 
-    return zone, band, subzone_x, subzone_y, area_x, area_y
+    return PointInfo(zone, band, subzone_lon, subzone_lat, area_x, area_y)
 
 def longitude_diff_to_km(lat, lon_start, lon_end):
     """
