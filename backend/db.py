@@ -113,9 +113,7 @@ class Database:
         WHERE subz.subz_longitude = %s AND subz.subz_latitude = %s;
         """
 
-        print("DEBUG: get_subzone")
         result = self.execute_request(request, (longitude, latitude))
-        print(f"DEBUG: {result}")
 
         if result:
             return result[0][0]
@@ -131,9 +129,7 @@ class Database:
         WHERE subz_id = %s;
         """
 
-        print("DEBUG: get_subzone")
         result = self.execute_request(request, (subzone_id,))
-        print(f"DEBUG: {result}")
 
         if result:
             longitude = result[0][0]
@@ -149,9 +145,7 @@ class Database:
         RETURNING z_id;
         """
 
-        print(f"DEBUG: insert_zone ({number}, {band})")
         result = self.execute_request(request, (number, band))
-        print(f"DEBUG: {result}")
 
         if result:
             zone_id = result[0][0]
@@ -166,9 +160,7 @@ class Database:
         RETURNING subz_id;
         """
 
-        print(f"DEBUG: insert_subzone")
         result = self.execute_request(request, (longitude, latitude, zone_id))
-        print(f"DEBUG: {result}")
 
         if result:
             subzone_id = result[0][0]

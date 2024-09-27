@@ -63,8 +63,6 @@ class Places:
         current_opening_hours = json.dumps(current_opening_hours, ensure_ascii=False)
         country_id = self.db.get_country(place["formattedAddress"].split(" ")[-1])
 
-        print(f"DEBUG: formatted address = {place["formattedAddress"]}")
-
         self.db.insert_place(
             formatted_address,
             google_maps_uri,
@@ -80,8 +78,6 @@ class Places:
         return
 
     def add_places(self, places, area_id):
-        print(f"DEBUG: adding places in area {area_id}")
-
         for place in places:
             self.add_place(place, area_id)
 
@@ -171,7 +167,7 @@ class Places:
         diff_height_km = utm.latitude_diff_to_km(center_lat-height/2,
                                           center_lat+height/2, center_lon)
         radius = max(diff_width_km, diff_height_km)
-        print(f"getting places from point ({center_lon}, {center_lat}), radius = {radius}")
+        print(f"[+] Getting places from point ({center_lon}, {center_lat}), radius = {radius}")
 
         new_center = Circle(
             center = Location(latitude=center_lat, longitude=center_lon),
@@ -207,10 +203,6 @@ class Places:
 
         else:
             places += tmp
-
-        # DEBUG
-        for p in places:
-            print(p["formattedAddress"])
 
         return places
 

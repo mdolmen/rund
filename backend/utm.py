@@ -59,7 +59,6 @@ def get_utm_zone_boundaries(zone, band):
 
     # Get and combine north/south bounds with east/west ones
     bounds = bounds | get_latitude_band_boundaries(band)
-    print(f"DEBUG: boundaries = {bounds}")
 
     return bounds
 
@@ -172,7 +171,6 @@ def find_area(boundaries, lat, lon):
     """
     # Get UTM zone and latitude band
     utm_zone, lat_band = get_utm_zone(lat, lon)
-    print(f"DEBUG: utm zone = {utm_zone}, lat band = {lat_band}")
 
     # At that point we have the UTM zone/lat band. Next step is to get the
     # subzone coordinates. Reminder: subzones are 1 degree lon x 1 degree lat.
@@ -207,7 +205,6 @@ def longitude_diff_to_km(lat, lon_start, lon_end):
     :param lon_end: Ending longitude.
     :return: Distance in kilometers.
     """
-    print(f"DEBUG: {lat}, {lon_start}, {lon_end}")
     point_start = (lat, lon_start)
     point_end = (lat, lon_end)
     return geodesic(point_start, point_end).kilometers
