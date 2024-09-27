@@ -7,8 +7,8 @@ import builtins
 from pydantic import BaseModel
 
 import utm
-from utm import AREA_WIDTH, AREA_HEIGHT
 
+from utm import AREA_WIDTH, AREA_HEIGHT, PointInfo
 from db import Database
 
 API_KEY_GPLACES = ""
@@ -42,6 +42,8 @@ class Places:
         if zone_id == 0:
             return
 
+        # Insert subzone
+        print(f"DEBUG: insert_subzone, {longitude}, {latitude}, {zone_id}")
         subzone_id = self.db.insert_subzone(longitude, latitude, zone_id)
         if subzone_id == 0:
             return
@@ -98,8 +100,51 @@ class Places:
     def is_area_covered(self, area_id):
         return self.db.get_area_covered(area_id)
 
-    def create_area_covered_entries(self, subzone_id, row, col):
-        self.db.insert_areas(subzone_id, row, col)
+    def create_subzones_and_areas(self, zone, band):
+        return self.db.create_subzones_and_areas(zone, band)
+
+    async def get_places_in_area(self, params, point_info, adjacent_lon,
+                                 adjacent_lat):
+        # If those are valid x/y, it means we are looking for an adjacent
+        # area to the one containing the original point.
+        if adjacent_lon != -1 and adjacent_lat != -1:
+            point_info = utm.get_area(adjacent_lat, adjacent_lon)
+
+        # Check subzone exists
+        if not self.subzone_exists(point_info.subzone_lon, point_info.subzone_lat):
+            subzone_id = self.add_subzone_in_zone(point_info.subzone_lon,
+                                                  point_info.subzone_lat,
+                                                  point_info.zone,
+                                                  point_info.band)
+
+        area_id = self.get_area_id(point_info.subzone_lon, point_info.subzone_lat,
+                                   point_info.area_x, point_info.area_y)
+        subz_id, area_x, area_y, area_covered = self.get_area_by_id(area_id)
+        subzone_lon, subzone_lat = self.db.get_subzone_by_id(subz_id)
+        center_lon = subzone_lon + ((area_x + 0.5) * AREA_WIDTH)
+        center_lat = subzone_lat + ((area_y + 0.5) * AREA_HEIGHT)
+        point_info.set_center(center_lon, center_lat)
+        #print(f"DEBUG: POINT INFO")
+        #print(f"DEBUG: subzone_lon = {point_info.subzone_lon}, subzone_lat = {point_info.subzone_lat}")
+        #print(f"DEBUG: area_x = {point_info.area_x}, area_y = {point_info.area_y}")
+        #print(f"DEBUG: area id = {area_id}")
+        #print(f"DEBUG: area_x = {area_x}, area_width = {AREA_WIDTH}")
+        #print(f"DEBUG: area_y = {area_y}, area_height = {AREA_HEIGHT}")
+        #print(f"DEBUG: subzone_id = {subz_id}, subzone_lon = {subzone_lon}, subzone_lat = {subzone_lat}")
+        #print(f"DEBUG: center_lon = {center_lon}, center_lat = {center_lat}")
+
+        # Request external API if necessary
+        if self.is_area_covered(area_id):
+            print("DEBUG: no request to make")
+        else:
+            print("DEBUG: requesting external API to get places...")
+            new_places = await self.get_places_external(params, center_lon,
+                                                        center_lat, AREA_WIDTH,
+                                                        AREA_HEIGHT)
+            print(f"[+] Adding {len(new_places)} places in area_id {area_id}")
+            self.add_places(new_places, area_id)
+
+        return
 
     async def get_places(self, params, expansion_level=1):
         """
@@ -119,40 +164,55 @@ class Places:
         area_id = -1
 
         # Find the area in which the point belongs to
-        zone, band, subzone_x, subzone_y, area_row, area_col = utm.get_area(
-            center.latitude, center.longitude
-        )
+        point_info = utm.get_area(center.latitude, center.longitude)
 
-        # If the subzone has not been seen yet (no request has been made in that
-        # region), add it in the db first
-        if not self.subzone_exists(subzone_x, subzone_y, zone, band):
-            subzone_id = self.add_subzone_in_zone(subzone_x, subzone_y, zone, band)
-            self.create_area_covered_entries(subzone_id, area_row, area_col, area_width,
-                                    area_height)
+        # Get places for that area
+        await self.get_places_in_area(params, point_info, -1, -1)
 
-        # Get the area id of the area containing the point
-        area_id = self.get_area_id(area_row, area_col)
-        print(f"DEBUG: area id = {area_id}")
+        # Get places in surronding areas. Depends on the radius we want to
+        # cover. Width of an area is approximately 1km but it may vary depending
+        # of the region.
+        # TODO: either consider 1 expansion level = 1km, or compute something
+        #       more precise (expansion level = radius we want / radius area)
+        for i in range(1, expansion_level + 1):
+            # Above
+            print(f"\n[!] Above, level = {i}")
+            for j in range(-i, i + 1):
+                adjacent_lon = point_info.area_center_lon + AREA_WIDTH * j
+                adjacent_lat = point_info.area_center_lat + AREA_HEIGHT * i
+                await self.get_places_in_area(params, point_info,
+                                              adjacent_lon,
+                                              adjacent_lat)
 
-        # Request external API if necessary
-        if self.is_area_covered(area_id):
-            print("DEBUG: no request to make, getting places from db...")
-        else:
-            print("DEBUG: requesting external API to get places...")
-            subz_id, area_row, area_col, area_width, area_height, area_covered = self.get_area_by_id(area_id)
-            subzone_lon, subzone_lat = self.db.get_subzone_by_id(subz_id)
-            center_lon = subzone_lon + ((area_row + 0.5) * area_width)
-            center_lat = subzone_lat + ((area_col + 0.5) * area_height)
-            print(f"DEBUG: area_row = {area_row}, area_width = {area_width}")
-            print(f"DEBUG: area_col = {area_col}, area_height = {area_height}")
-            print(f"DEBUG: subzone_id = {subz_id}, subzone_lon = {subzone_lon}, subzone_lat = {subzone_lat}")
-            print(f"DEBUG: center_lon = {center_lon}, center_lat = {center_lat}")
-            new_places = await self.get_places_external(params, center_lon, center_lat, area_width, area_height)
-            print(f"DEBUG: adding {len(new_places)}")
-            self.add_places(new_places, area_id)
+            # Below
+            print(f"\n[!] Below, level = {i}")
+            for j in range(-i, i + 1):
+                adjacent_lon = point_info.area_center_lon + AREA_WIDTH * j
+                adjacent_lat = point_info.area_center_lat - AREA_HEIGHT * i
+                await self.get_places_in_area(params, point_info,
+                                              adjacent_lon,
+                                              adjacent_lat)
+
+            # Left side
+            print(f"\n[!] Left side, level = {i}")
+            for j in range(-i + 1, i):
+                adjacent_lon = point_info.area_center_lon - AREA_WIDTH * i
+                adjacent_lat = point_info.area_center_lat + AREA_HEIGHT * j
+                await self.get_places_in_area(params, point_info,
+                                              adjacent_lon,
+                                              adjacent_lat)
+
+            # Right side
+            print(f"\n[!] Right side, level = {i}")
+            for j in range(-i + 1, i):
+                adjacent_lon = point_info.area_center_lon + AREA_WIDTH * i
+                adjacent_lat = point_info.area_center_lat + AREA_HEIGHT * j
+                await self.get_places_in_area(params, point_info,
+                                              adjacent_lon,
+                                              adjacent_lat)
 
         new_places = self.get_places_from_db(area_id)
-        #print(new_places)
+        print(f"[+] get_places, len(new_places) = {len(new_places)}")
 
         return new_places
 

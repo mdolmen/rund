@@ -17,6 +17,21 @@ AREA_HEIGHT = 1 / SUBZONE_SPLIT_Y
 
 m = folium.Map()
 
+class PointInfo:
+    def __init__(self, zone, band, subzone_lon, subzone_lat, area_x, area_y):
+        self.zone = zone
+        self.band = band
+        self.subzone_lon = subzone_lon
+        self.subzone_lat = subzone_lat
+        self.area_x = area_x
+        self.area_y = area_y
+        self.area_center_lon = -1
+        self.area_center_lat = -1
+
+    def set_center(self, lon, lat):
+        self.area_center_lon = lon
+        self.area_center_lat = lat
+
 def init_utm_transformer(utm_zone, lat_band):
     """
     Init a transformer to convert coords from GPS to UTM.
