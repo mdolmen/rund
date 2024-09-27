@@ -115,6 +115,13 @@ def get_utm_zone(lat, lon):
 
     :return: UTM zone and latitude band.
     """
+    # Check that lat/lon are valid coordinates
+    invalid = (0, 'A')
+    if lat < -80 or lat > 84:
+        return invalid
+    if lon < -180 or lon > 180:
+        return invalid
+
     # Determine the UTM zone
     utm_zone = int((lon + 180) / 6) + 1
 
