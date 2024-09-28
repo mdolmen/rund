@@ -21,7 +21,7 @@ async def index():
 async def get_places(params: RequestBody):
     new_places = await places.get_places(params)
 
-    return []
+    return new_places
 
 @app.post("/get-places-dev")
 async def get_places_dev(params: RequestBody):

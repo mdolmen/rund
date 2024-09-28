@@ -250,15 +250,22 @@ class Database:
 
         return
 
-    def get_places(self, area_id):
-        request = """
+    def get_places(self, area_ids):
+        # Prepare WHERE conditions
+        conditions = ""
+        for area_id in area_ids:
+            if conditions != "":
+                conditions += " OR "
+            conditions += "place_area_id = %s"
+
+        request = f"""
         SELECT *
         FROM autour.places
-        WHERE place_area_id = %s;
+        WHERE {conditions};
         """
 
         places = []
-        result = self.execute_request(request, (area_id,))
+        result = self.execute_request(request, area_ids)
 
         if result:
             places = result

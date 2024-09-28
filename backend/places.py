@@ -105,6 +105,19 @@ class Places:
 
     async def get_places_in_area(self, params, point_info, adjacent_lon,
                                  adjacent_lat):
+        """
+        Get the places in the area corresponding to given point.
+
+        :param params: JSON object holding the arguments passed to the endpoint
+        from the frontend.
+        :param point_info: Object holding the characteristic of the point to
+        identify it on the virtually splitted map of the world (zone, subzone,
+        etc.).
+        :param adjacent_lon: Longitude of the adjacent area.
+        :param adjacent_lat: Latitude of the adjacent area.
+
+        :return: The area id used.
+        """
         # If those are valid x/y, it means we are looking for an adjacent
         # area to the one containing the original point.
         if adjacent_lon != -1 and adjacent_lat != -1:
@@ -144,7 +157,7 @@ class Places:
             print(f"[+] Adding {len(new_places)} places in area_id {area_id}")
             self.add_places(new_places, area_id)
 
-        return
+        return area_id
 
     async def get_places(self, params, expansion_level=1):
         """
@@ -162,12 +175,14 @@ class Places:
         """
         center = params.locationRestriction.circle.center
         area_id = -1
+        area_ids = []
 
         # Find the area in which the point belongs to
         point_info = utm.get_area(center.latitude, center.longitude)
 
         # Get places for that area
-        await self.get_places_in_area(params, point_info, -1, -1)
+        area_id = await self.get_places_in_area(params, point_info, -1, -1)
+        area_ids.append(area_id)
 
         # Get places in surronding areas. Depends on the radius we want to
         # cover. Width of an area is approximately 1km but it may vary depending
@@ -180,38 +195,44 @@ class Places:
             for j in range(-i, i + 1):
                 adjacent_lon = point_info.area_center_lon + AREA_WIDTH * j
                 adjacent_lat = point_info.area_center_lat + AREA_HEIGHT * i
-                await self.get_places_in_area(params, point_info,
+                area_id = await self.get_places_in_area(params, point_info,
                                               adjacent_lon,
                                               adjacent_lat)
+                area_ids.append(area_id)
 
             # Below
             print(f"\n[!] Below, level = {i}")
             for j in range(-i, i + 1):
                 adjacent_lon = point_info.area_center_lon + AREA_WIDTH * j
                 adjacent_lat = point_info.area_center_lat - AREA_HEIGHT * i
-                await self.get_places_in_area(params, point_info,
+                area_id = await self.get_places_in_area(params, point_info,
                                               adjacent_lon,
                                               adjacent_lat)
+                area_ids.append(area_id)
 
             # Left side
             print(f"\n[!] Left side, level = {i}")
             for j in range(-i + 1, i):
                 adjacent_lon = point_info.area_center_lon - AREA_WIDTH * i
                 adjacent_lat = point_info.area_center_lat + AREA_HEIGHT * j
-                await self.get_places_in_area(params, point_info,
+                area_id = await self.get_places_in_area(params, point_info,
                                               adjacent_lon,
                                               adjacent_lat)
+                area_ids.append(area_id)
 
             # Right side
             print(f"\n[!] Right side, level = {i}")
             for j in range(-i + 1, i):
                 adjacent_lon = point_info.area_center_lon + AREA_WIDTH * i
                 adjacent_lat = point_info.area_center_lat + AREA_HEIGHT * j
-                await self.get_places_in_area(params, point_info,
+                area_id = await self.get_places_in_area(params, point_info,
                                               adjacent_lon,
                                               adjacent_lat)
+                area_ids.append(area_id)
 
-        new_places = self.get_places_from_db(area_id)
+        print(f"DEBUG: area_id = {area_id}")
+        print(f"DEBUG: area_ids = {area_ids}")
+        new_places = self.get_places_from_db(area_ids)
         print(f"[+] get_places, len(new_places) = {len(new_places)}")
 
         return new_places
