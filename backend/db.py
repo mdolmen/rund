@@ -259,7 +259,21 @@ class Database:
             conditions += "place_area_id = %s"
 
         request = f"""
-        SELECT *
+        SELECT json_agg(
+            json_build_object(
+                'place_id', place_id,
+                'place_formatted_address', place_formatted_address,
+                'place_google_maps_uri', place_google_maps_uri,
+                'place_primary_type', place_primary_type,
+                'place_display_name', place_display_name,
+                'place_longitude', place_longitude,
+                'place_latitude', place_latitude,
+                'place_current_opening_hours', place_current_opening_hours,
+                'place_country', place_country,
+                'place_area_id', place_area_id,
+                'last_updated', last_updated
+            )
+        )
         FROM autour.places
         WHERE {conditions};
         """
@@ -268,7 +282,7 @@ class Database:
         result = self.execute_request(request, area_ids)
 
         if result:
-            places = result
+            places = result[0][0]
 
         return places
 
