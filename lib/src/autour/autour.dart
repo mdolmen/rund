@@ -326,7 +326,7 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
         SliverList(
           delegate: SliverChildBuilderDelegate(
             (BuildContext context, int index) {
-              return PlaceListItem(placeData: _places[index]);
+              return PlaceListItem(userPosition: _lastKnownCoords, placeData: _places[index]);
             },
             childCount: _places.length,
           ),
@@ -348,21 +348,40 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
 }
 
 class PlaceListItem extends StatelessWidget {
+  final Location userPosition;
   final Place placeData;
   int _todayIdx = 0;
 
   PlaceListItem({
+    required this.userPosition,
     required this.placeData,
   });
 
-  String getDayName() {
+  String _getDayName() {
     return DateFormat('EEEE').format(DateTime.now());
+  }
+
+  String _computeDistance(double lat, double lng) {
+      double distance = 0.0;
+      String distanceStr = "";
+
+      distance = Geolocator.distanceBetween(userPosition.lat, userPosition.lng,
+          lat, lng);
+      if (distance >= 1000) {
+          //distance = distance.toStringAsFixed(1)
+          distanceStr = "${(distance / 1000).toStringAsFixed(1)} km";
+      }
+      else {
+          distanceStr = "${distance.round()} m";
+      }
+
+      return distanceStr;
   }
 
   @override
   Widget build(BuildContext context) {
     // Get today's index
-    _todayIdx = dayNamesIndex[getDayName()] ?? -1;
+    _todayIdx = dayNamesIndex[_getDayName()] ?? -1;
 
     final String? currentOpeningHours =
             placeData.currentOpeningHours?.weekdayDescriptions[_todayIdx];
@@ -443,7 +462,8 @@ class PlaceListItem extends StatelessWidget {
                     ),
                     Container(height: 5),
                     Text(
-                      "100m",
+                      _computeDistance(placeData.location.lat,
+                          placeData.location.lng),
                       style: TextStyle(
                         fontSize: 16,
                       ),
