@@ -67,8 +67,8 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
 
     // Add all the places to the local db
     for (final place in places) {
-      String loc = place.location.toString();
-      print("[+] Adding place with location: $loc");
+      String name = place.displayName;
+      print("[+] Adding place: $name");
       _insertPlace(place);
     }
 
@@ -265,12 +265,17 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
 
   Future<void> _insertPlace(Place place) async {
     await dbHelper.insertPlace({
-      'formatted_address': place.formattedAddress,
-      'google_maps_uri': place.googleMapsUri,
-      'primary_type': place.primaryType,
-      'display_name': place.displayName,
-      'location': json.encode(place.location.toJson()),
-      'current_opening_hours': json.encode(place.currentOpeningHours?.toJson()),
+      'place_id': place.id,
+      'place_formatted_address': place.formattedAddress,
+      'place_google_maps_uri': place.googleMapsUri,
+      'place_primary_type': place.primaryType,
+      'place_display_name': place.displayName,
+      'place_longitude': place.location.lng,
+      'place_latitude': place.location.lat,
+      'place_current_opening_hours': json.encode(place.currentOpeningHours?.toJson()),
+      'place_country': place.countryId,
+      'place_area_id': place.areaId,
+      'last_updated': place.lastUpdated.toIso8601String(),
     });
   }
 
@@ -458,34 +463,49 @@ class PlaceListItem extends StatelessWidget {
 }
 
 class Place {
+  final int id;
   final String formattedAddress;
   final String googleMapsUri;
   final String primaryType;
   final String displayName;
   final Location location;
   final OpeningHours? currentOpeningHours;
+  final int countryId;
+  final int areaId;
+  final DateTime lastUpdated;
 
   const Place({
+    required this.id,
     required this.formattedAddress,
     required this.googleMapsUri,
     required this.primaryType,
     required this.displayName,
     required this.location,
     required this.currentOpeningHours,
+    required this.countryId,
+    required this.areaId,
+    required this.lastUpdated,
   });
 
   factory Place.fromJson(Map<String, dynamic> json) {
     return Place(
-      formattedAddress: json['formattedAddress'] ?? "Unknown address",
-      googleMapsUri: json['googleMapsUri'] ?? "Unknown Google Maps Uri",
-      primaryType: json['primaryType'] ?? "Unknown primary type",
-      displayName: json['displayName']['text'] ?? "displayName",
-      location: json['location'] != null
-        ? Location.fromJson(json['location'])
+      id: json['place_id'] ?? 0,
+      formattedAddress: json['place_formatted_address'] ?? "Unknown address",
+      googleMapsUri: json['place_google_maps_uri'] ?? "Unknown Google Maps Uri",
+      primaryType: json['place_primary_type'] ?? "Unknown primary type",
+      displayName: json['place_display_name'] ?? "displayName",
+      location: json['place_longitude'] != null && json['place_latitude'] != null
+        ? Location(lat: json['place_latitude'], lng: json['place_longitude'])
         : Location(lat: -360, lng: -360),
-      currentOpeningHours: json['currentOpeningHours'] != null
-        ? OpeningHours.fromJson(json['currentOpeningHours'])
+      currentOpeningHours: json['place_current_opening_hours'] != null
+        && json['place_current_opening_hours'] != "\"Unknown\""
+        ? OpeningHours.fromJson(jsonDecode(json['place_current_opening_hours']))
         : null,
+      countryId: json['place_country'] ?? 0,
+      areaId: json['place_area_id'] ?? 0,
+      lastUpdated: json['last_updated'] != null
+        ? DateTime.parse(json['last_updated'])
+        : DateTime(1970, 1, 1),
     );
   }
 }
@@ -498,8 +518,8 @@ class Location {
 
   factory Location.fromJson(Map<String, dynamic> json) {
     return Location(
-      lat: json['latitude'],
-      lng: json['longitude'],
+      lat: json['place_latitude'],
+      lng: json['place_longitude'],
     );
   }
 

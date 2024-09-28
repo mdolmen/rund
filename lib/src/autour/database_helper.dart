@@ -19,6 +19,9 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'autour.db');
     //print("[+] DEBUG, db path = $path");
 
+    // Delete the existing database
+    //await deleteDatabase(path);
+
     return await openDatabase(
       path,
       version: 1,
@@ -28,15 +31,19 @@ class DatabaseHelper {
 
   Future _onCreate(Database db, int version) async {
     await db.execute('''
-    CREATE TABLE places (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      formatted_address TEXT,
-      google_maps_uri TEXT,
-      primary_type TEXT,
-      display_name TEXT,
-      location TEXT,
-      current_opening_hours TEXT
-    )
+    CREATE TABLE IF NOT EXISTS places (
+        place_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        place_formatted_address TEXT UNIQUE,
+        place_google_maps_uri TEXT,
+        place_primary_type TEXT,
+        place_display_name TEXT,
+        place_longitude REAL,
+        place_latitude REAL,
+        place_current_opening_hours TEXT,
+        place_country INTEGER,
+        place_area_id INTEGER,
+        last_updated DATE
+    );
     ''');
   }
 
