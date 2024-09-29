@@ -11,17 +11,17 @@ import 'package:geolocator/geolocator.dart';
 
 import 'database_helper.dart';
 
-const String BACKEND_URL = "http://vps-433a4dd6.vps.ovh.net:8080";
-const String API_KEY_GEOCODE = "";
+//const String BACKEND_URL = "http://vps-433a4dd6.vps.ovh.net:8080";
+const String BACKEND_URL = "http://127.0.0.1:8080";
 
 const Map<String, int> dayNamesIndex = {
-  'Monday': 0,
-  'Tuesday': 1,
-  'Wednesday': 2,
-  'Thursday': 3,
-  'Friday': 4,
-  'Saturday': 5,
-  'Sunday': 6,
+  'Sunday': 0,
+  'Monday': 1,
+  'Tuesday': 2,
+  'Wednesday': 3,
+  'Thursday': 4,
+  'Friday': 5,
+  'Saturday': 6,
 };
 
 class AutourScreen extends StatefulWidget {
@@ -41,6 +41,7 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
   List<Place> _places = [];
   Location _lastKnownCoords = Location(lat:-360, lng:-360); // unvalid gps coords
   String _lastKnownPosition = "";
+  bool _positionHasChanged = true;
 
   @override
   void initState() {
@@ -56,31 +57,129 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
     _tabController.dispose();
   }
 
-  Future<List<Place>> _searchNearby(String filters) async {
+  int _timeStrToMinutes(String time) {
+    List<String> parts = time.split(':');
+    int hours = int.parse(parts[0]);
+    int minutes = int.parse(parts[1]);
+    return hours * 60 + minutes;
+  }
+
+  bool _applyFilters(String today, String filters, Place place) {
+    Map<String, dynamic> filtersJson = _formatFiltersStrToJson(filters);
+    bool f_open_on = false;
+    bool f_open_before = true;
+    bool f_open_after = true;
+    bool f_open_today = true;
+    bool f_open_now = true;
+
+    // Open on
+    String todayShort = "";
+    if (today == "Thursday" || today == "Sunday") {
+      todayShort = today.substring(0, 2);
+    }
+    else {
+      todayShort = today[0];
+    }
+    for (final day in filtersJson['days'].cast<String>()) {
+      if (day == todayShort)
+        f_open_on = true;
+    }
+
+    // Init filter flags based on filtered activated
+    if (filtersJson["open_today"])
+      f_open_today = false;
+    if (filtersJson["open_now"])
+      f_open_now = false;
+    if (filtersJson['open_before'] != null)
+      f_open_before = false;
+    if (filtersJson['open_after'] != null)
+      f_open_after = false;
+
+    // Open before
+    int open_before = _timeStrToMinutes(filtersJson['open_before'] ?? "23:59");
+    int close_after = _timeStrToMinutes(filtersJson['open_after'] ?? "00:01");
+    DateTime now = DateTime.now();
+    int current_time = now.hour * 60 + now.minute;
+    List<Period> periods = place.currentOpeningHours?.periods ?? [];
+    int todayIdx = dayNamesIndex[today] ?? -1;
+
+    for (final period in periods) {
+
+      if (period.open.day == todayIdx || period.close.day == todayIdx) {
+        int open_at = period.open.hour * 60 + period.open.minute;
+        int close_at = period.close.hour * 60 + period.close.minute;
+
+        // Open today
+        if (filtersJson["open_today"]) {
+          f_open_today = true;
+        }
+
+        // Open now
+        if (filtersJson["open_now"] != null
+            && current_time > open_at && current_time < close_at)
+        {
+          f_open_now = true;
+        }
+
+        // Open before
+        if (filtersJson['open_before'] != null && open_at <= open_before) {
+          f_open_before = true;
+        }
+
+        // Open after
+        if (filtersJson['open_after'] != null && close_at >= close_after) {
+          f_open_after = true;
+        }
+      }
+    }
+
+    return f_open_today && f_open_now && f_open_before  && f_open_after;
+  }
+
+  Future<List<Place>> _searchNearby(String today, String filters) async {
     print("[+] Getting places around...");
 
-    Map<String, dynamic> filtersJson = _formatFilters(filters);
+    List<Place> places = [];
 
     // TODO: don't call the backend if on offline mode
 
-    List<Place> places = await _getPlaces();
+    places = await _getPlaces();
+    // TODO: requires adding a function to get places from local db
+    //if (_positionHasChanged) {
+    //  places = await _getPlaces();
+    //  _positionHasChanged = false;
+    //  print("DEBUG: getting places");
+    //}
+    //else {
+    //  print("DEBUG: already got places for that position");
+    //  print("DEBUG: len(_places) = ${_places.length}");
+    //  places = _places;
+    //}
+    List<Place> filteredPlaces = [];
 
     // Add all the places to the local db
     for (final place in places) {
       String name = place.displayName;
       print("[+] Adding place: $name");
+      // TODO: don't insert if offline mode is on
       _insertPlace(place);
+
+      if (_applyFilters(today, filters, place) == true)
+        filteredPlaces.add(place);
     }
 
-    // TODO: apply filter to places from local db, return only places to display
-
-    return places;
+    return filteredPlaces;
   }
 
   /// Call the backend to get the list of places
   /// Returns JSON data parseable into Place objects.
   Future<List<Place>> _getPlaces() async {
     List<Place> places = [];
+
+    // TODO:
+    //  - pass positionHasChanged in parameter
+    //  - if not positionHasChanged, do the same as offline mode, aka get places
+    //  from local db (don't call the backend API)
 
     if (_lastKnownCoords.lat == -360 && _lastKnownCoords.lng == -360) {
       String currentAddress = await _getCurrentAddress();
@@ -185,10 +284,15 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
     return currentPos;
   }
 
-  /// Formats a string to a valide json string and returns a json object.
-  Map<String, dynamic> _formatFilters(String filters) {
-    // Put double quotes around keys
-    String jsonString = filters.replaceAllMapped(RegExp(r'(\w+):'), (match) => '"${match[1]}":');
+  /// Formats a string to a valid json string and returns a json object.
+  Map<String, dynamic> _formatFiltersStrToJson(String filters) {
+    // Put double quotes around time values or any unquoted values with colons (e.g., 04:00)
+    String jsonString = filters.replaceAllMapped(RegExp(r'(?<=:\s?)(\d{2}:\d{2})'), (match) => '"${match[1]}"');
+    print("DEBUG: jsonString (after time values fix) = $jsonString");
+
+    // Put double quotes around unquoted keys
+    jsonString = jsonString.replaceAllMapped(RegExp(r'(?<!["\w])(\w+)(?=\s*:)'), (match) => '"${match[1]}"');
+    print("DEBUG: jsonString (after key quotes fix) = $jsonString");
 
     // Put double quotes around values inside arrays
     jsonString = jsonString.replaceAllMapped(RegExp(r'\[([^\]]+)\]'), (match) {
@@ -208,9 +312,10 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
       context: context,
       builder: (BuildContext context) {
         return AutourFilters(
-          searchBtnCallback: (filters) async {
-            List<Place> places = await _searchNearby(filters);
+          searchBtnCallback: (today, filters) async {
+            List<Place> places = await _searchNearby(today, filters);
             setState(() {
+              print("DEBUG: searchNearby has returned, setting places, ${places.length}");
               _places = places;
             });
           }
@@ -247,6 +352,7 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
                 _getCurrentAddress().then((value) {
                   setState(() {
                     _lastKnownPosition = value;
+                    _positionHasChanged = true;
                   });
                 });
               },
@@ -368,7 +474,6 @@ class PlaceListItem extends StatelessWidget {
       distance = Geolocator.distanceBetween(userPosition.lat, userPosition.lng,
           lat, lng);
       if (distance >= 1000) {
-          //distance = distance.toStringAsFixed(1)
           distanceStr = "${(distance / 1000).toStringAsFixed(1)} km";
       }
       else {
@@ -383,8 +488,11 @@ class PlaceListItem extends StatelessWidget {
     // Get today's index
     _todayIdx = dayNamesIndex[_getDayName()] ?? -1;
 
+    // In the 'openingHours' 'day' starts at 0 for sunday but in the
+    // 'weekdayDescritions' the array starts at monday...
     final String? currentOpeningHours =
-            placeData.currentOpeningHours?.weekdayDescriptions[_todayIdx];
+            placeData.currentOpeningHours?.weekdayDescriptions[(_todayIdx-1) % 7];
+
     final bool isOpen = placeData.currentOpeningHours?.openNow ?? false;
     final IconData isOpenIcon = isOpen ? Icons.check_circle : Icons.cancel;
     final Color isOpenColor = isOpen ? Colors.green : Colors.red;
@@ -639,11 +747,15 @@ class Hour {
 
 class AutourFilters extends StatelessWidget {
   final _formKey = GlobalKey<FormBuilderState>();
-  final Function(String) searchBtnCallback;
+  final Function(String, String) searchBtnCallback;
 
   AutourFilters({
     required this.searchBtnCallback,
   });
+
+  String _getDayName() {
+    return DateFormat('EEEE').format(DateTime.now());
+  }
 
   List<String> _days = ['M', 'T', 'W', 'Th', 'F', 'S', 'Su'];
   List<String> _hours = [
@@ -658,7 +770,7 @@ class AutourFilters extends StatelessWidget {
   void _handleButtonPressed() {
     _formKey.currentState?.validate();
     String? filters = _formKey.currentState?.instantValue.toString();
-    searchBtnCallback(filters ?? "{}");
+    searchBtnCallback(_getDayName(), filters ?? "{}");
   }
 
   @override
@@ -717,6 +829,13 @@ class AutourFilters extends StatelessWidget {
                         child: Text(hour),
                       ))
                   .toList(),
+            ),
+
+            // Open today
+            FormBuilderCheckbox(
+              name: 'open_today',
+              title: const Text('Open today'),
+              initialValue: false,
             ),
 
             // Open now
