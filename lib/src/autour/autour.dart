@@ -493,9 +493,9 @@ class PlaceListItem extends StatelessWidget {
     final String? currentOpeningHours =
             placeData.currentOpeningHours?.weekdayDescriptions[(_todayIdx-1) % 7];
 
-    final bool isOpen = placeData.currentOpeningHours?.openNow ?? false;
-    final IconData isOpenIcon = isOpen ? Icons.check_circle : Icons.cancel;
-    final Color isOpenColor = isOpen ? Colors.green : Colors.red;
+    final open = placeData.isOpen();
+    final IconData isOpenIcon = open ? Icons.check_circle : Icons.cancel;
+    final Color isOpenColor = open ? Colors.green : Colors.red;
 
     return Card(
       shape: RoundedRectangleBorder(
@@ -635,6 +635,30 @@ class Place {
         ? DateTime.parse(json['last_updated'])
         : DateTime(1970, 1, 1),
     );
+  }
+
+  bool isOpen() {
+    DateTime now = DateTime.now();
+    int current_time = now.hour * 60 + now.minute;
+    String today = _getDayName();
+    int todayIdx = dayNamesIndex[today] ?? -1;
+    List<Period> periods = this.currentOpeningHours?.periods ?? [];
+    bool isOpenNow = false;
+
+    for (final period in periods) {
+      if (period.open.day == todayIdx || period.close.day == todayIdx) {
+        int open_at = period.open.hour * 60 + period.open.minute;
+        int close_at = period.close.hour * 60 + period.close.minute;
+        if (current_time > open_at && current_time < close_at)
+          isOpenNow = true;
+      }
+    }
+
+    return isOpenNow;
+  }
+
+  String _getDayName() {
+    return DateFormat('EEEE').format(DateTime.now());
   }
 }
 
