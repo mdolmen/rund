@@ -288,11 +288,9 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
   Map<String, dynamic> _formatFiltersStrToJson(String filters) {
     // Put double quotes around time values or any unquoted values with colons (e.g., 04:00)
     String jsonString = filters.replaceAllMapped(RegExp(r'(?<=:\s?)(\d{2}:\d{2})'), (match) => '"${match[1]}"');
-    print("DEBUG: jsonString (after time values fix) = $jsonString");
 
     // Put double quotes around unquoted keys
     jsonString = jsonString.replaceAllMapped(RegExp(r'(?<!["\w])(\w+)(?=\s*:)'), (match) => '"${match[1]}"');
-    print("DEBUG: jsonString (after key quotes fix) = $jsonString");
 
     // Put double quotes around values inside arrays
     jsonString = jsonString.replaceAllMapped(RegExp(r'\[([^\]]+)\]'), (match) {
@@ -385,6 +383,17 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
     });
   }
 
+  void _showPlaceDetails(BuildContext context, int index) async {
+    List<String> weekdayDesc = _places[index].currentOpeningHours?.weekdayDescriptions ?? [];
+
+    await showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return PlaceDetails(weekdayDesc: weekdayDesc);
+      }
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
@@ -432,7 +441,14 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
         SliverList(
           delegate: SliverChildBuilderDelegate(
             (BuildContext context, int index) {
-              return PlaceListItem(userPosition: _lastKnownCoords, placeData: _places[index]);
+              return GestureDetector(
+                onTap: () {
+                  _showPlaceDetails(context, index);
+                },
+                child: Container(
+                  child: PlaceListItem(userPosition: _lastKnownCoords, placeData: _places[index]),
+                ),
+              );
             },
             childCount: _places.length,
           ),
@@ -495,7 +511,7 @@ class PlaceListItem extends StatelessWidget {
 
     final open = placeData.isOpen();
     final IconData isOpenIcon = open ? Icons.check_circle : Icons.cancel;
-    final Color isOpenColor = open ? Colors.green : Colors.red;
+    final Color isOpenColor = placeData.isOpen() ? Colors.green : Colors.red;
 
     return Card(
       shape: RoundedRectangleBorder(
@@ -896,6 +912,78 @@ class AutourFilters extends StatelessWidget {
           },
         ),
       ],
+    );
+  }
+}
+
+class PlaceDetails extends StatelessWidget {
+  final List<String> weekdayDesc;
+
+  PlaceDetails({
+    required this.weekdayDesc,
+  });
+
+  Widget _showDesc(String day) {
+    int dayLength = 10;
+    int splitIndex = day.indexOf(':');
+
+    // Craft day of week text with padding to align the time that comes next
+    String dayPart = day.substring(0, splitIndex).trim();
+    String padding = List.filled(dayLength - dayPart.length, ' ').join();
+    String dayPartFormatted = dayPart + padding;
+
+    // Craft hours text
+    String timePart = day.substring(splitIndex + 1).trim();
+    String timePartFormatted = "";
+    List<String> hours = timePart.split(',');
+    bool first = true;
+    for (final hour in hours) {
+      if (first == false)
+        timePartFormatted += "\n" + List.filled(dayLength - 1, ' ').join();
+      if (first)
+        first = false;
+      timePartFormatted += hour;
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: RichText(
+            text: TextSpan(
+              // Main text style
+              style: TextStyle(
+                fontSize: 16.0,
+                color: Colors.black,
+                fontFamily: 'Courier',
+              ),
+              children: [
+                TextSpan(
+                  text: dayPartFormatted,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                TextSpan(
+                  text: timePartFormatted,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text("Opening hours"),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: weekdayDesc.map((day) => _showDesc(day)).toList(),
+      ),
     );
   }
 }
