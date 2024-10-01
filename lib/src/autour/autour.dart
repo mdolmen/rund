@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:map_launcher/map_launcher.dart';
 
 import 'database_helper.dart';
 
@@ -510,6 +511,15 @@ class PlaceListItem extends StatelessWidget {
       return distanceStr;
   }
 
+  Future<void> _openInMaps(String name, double lat, double lon) async {
+    final availableMaps = await MapLauncher.installedMaps;
+
+    await availableMaps.first.showMarker(
+      coords: Coords(lat, lon),
+      title: name,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Get today's index
@@ -591,7 +601,10 @@ class PlaceListItem extends StatelessWidget {
                       iconSize: 44,
                       icon: const Icon(Icons.assistant_navigation),
                       onPressed: () {
-                        print("Open in maps");
+                        _openInMaps(placeData.displayName,
+                            placeData.location.lat,
+                            placeData.location.lng
+                        );
                       },
                       padding: EdgeInsets.zero,
                     ),
