@@ -15,7 +15,7 @@ class Database:
             'dbname': 'autour',
             'user': 'autour',
             'password': 'mypassword',
-            'host': 'localhost',
+            'host': 'postgres',
             'port': '5432'
         }
         

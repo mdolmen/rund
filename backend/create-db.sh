@@ -4,9 +4,11 @@
 DB_NAME="autour"
 DB_USER="autour"
 DB_PASSWORD="mypassword"
-DB_HOST="localhost"
+#DB_HOST="localhost"
+DB_HOST="postgres"
 DB_PORT="5432"
 
+# Set PostgreSQL password for the 'postgres' user
 export PGPASSWORD="mysecretpassword"
 
 # SQL script to create schema and tables
