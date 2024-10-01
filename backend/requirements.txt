@@ -3,3 +3,7 @@ fastapi
 uvicorn
 geopy
 psycopg2
+httpx
+pyproj
+shapely
+folium
