@@ -139,6 +139,9 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
   Future<List<Place>> _searchNearby(String today, String filters) async {
     print("[+] Getting places around...");
 
+    _searchOngoing = true;
+    setState(() {});
+
     List<Place> places = [];
 
     // TODO: don't call the backend if on offline mode
@@ -167,6 +170,9 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
       if (_applyFilters(today, filters, place) == true)
         filteredPlaces.add(place);
     }
+
+    _searchOngoing = false;
+    setState(() {});
 
     return filteredPlaces;
   }
@@ -438,27 +444,28 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
           pinned: true,
         ),
 
-        SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (BuildContext context, int index) {
-              return GestureDetector(
-                onTap: () {
-                  _showPlaceDetails(context, index);
-                },
-                child: Container(
-                  child: PlaceListItem(userPosition: _lastKnownCoords, placeData: _places[index]),
-                ),
-              );
-            },
-            childCount: _places.length,
+        if (!_searchOngoing)
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (BuildContext context, int index) {
+                return GestureDetector(
+                  onTap: () {
+                    _showPlaceDetails(context, index);
+                  },
+                  child: Container(
+                    child: PlaceListItem(userPosition: _lastKnownCoords, placeData: _places[index]),
+                  ),
+                );
+              },
+              childCount: _places.length,
+            ),
           ),
-        ),
 
         if (_searchOngoing)
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 16.0),
-              child: LoadingAnimationWidget.threeRotatingDots(
+              child: LoadingAnimationWidget.beat(
                 color: Colors.deepPurple.shade100,
                 size: 50,
               ),
