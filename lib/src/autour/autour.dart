@@ -66,29 +66,33 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
 
   bool _applyFilters(String today, String filters, Place place) {
     Map<String, dynamic> filtersJson = _formatFiltersStrToJson(filters);
-    bool f_open_on = false;
+    print(filtersJson);
+    bool f_open_on = true;
     bool f_open_before = true;
     bool f_open_after = true;
     bool f_open_today = true;
     bool f_open_now = true;
 
     // Open on
-    String todayShort = "";
-    if (today == "Thursday" || today == "Sunday") {
-      todayShort = today.substring(0, 2);
-    }
-    else {
-      todayShort = today[0];
-    }
-    for (final day in filtersJson['days'].cast<String>()) {
-      if (day == todayShort)
-        f_open_on = true;
+    if (filtersJson["open_on"] != null) {
+      f_open_on = false;
+      String todayShort = "";
+      if (today == "Thursday" || today == "Sunday") {
+        todayShort = today.substring(0, 2);
+      }
+      else {
+        todayShort = today[0];
+      }
+      for (final day in filtersJson['days'].cast<String>()) {
+        if (day == todayShort)
+          f_open_on = true;
+      }
     }
 
     // Init filter flags based on filtered activated
-    if (filtersJson["open_today"])
+    if (filtersJson["open_today"] != null)
       f_open_today = false;
-    if (filtersJson["open_now"])
+    if (filtersJson["open_now"] != null)
       f_open_now = false;
     if (filtersJson['open_before'] != null)
       f_open_before = false;
@@ -110,7 +114,7 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
         int close_at = period.close.hour * 60 + period.close.minute;
 
         // Open today
-        if (filtersJson["open_today"]) {
+        if (filtersJson["open_today"] != null) {
           f_open_today = true;
         }
 
@@ -466,7 +470,7 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 16.0),
               child: LoadingAnimationWidget.beat(
-                color: Colors.deepPurple.shade100,
+                color: Colors.blue.shade100,
                 size: 50,
               ),
             ),
@@ -832,22 +836,15 @@ class AutourFilters extends StatelessWidget {
             Text("Current location goes here"),
 
             // Open on
-            FormBuilderCheckboxGroup<String>(
+            FormBuilderFilterChip<String>(
               autovalidateMode: AutovalidateMode.onUserInteraction,
-              decoration: const InputDecoration(
-                  labelText: 'Open on'),
+              decoration: const InputDecoration(labelText: 'Open on'),
               name: 'days',
-              initialValue: ['M', 'T', 'W', 'Th', 'F', 'S', 'Su'],
+              //selectedColor: Colors.red,
               options: _days
                   .map(
-                    (day) => FormBuilderFieldOption(value: day)
+                    (day) => FormBuilderChipOption(value: day)
                   ).toList(),
-              //onChanged: _onChanged,
-              separator: const VerticalDivider(
-                width: 10,
-                thickness: 5,
-                color: Colors.red,
-              ),
             ),
 
             // Open before
@@ -879,17 +876,25 @@ class AutourFilters extends StatelessWidget {
             ),
 
             // Open today
-            FormBuilderCheckbox(
+            FormBuilderFilterChip<String>(
+              autovalidateMode: AutovalidateMode.onUserInteraction,
               name: 'open_today',
-              title: const Text('Open today'),
-              initialValue: false,
+              options: const [
+                FormBuilderChipOption(
+                  value: 'Open today',
+                ),
+              ],
             ),
 
             // Open now
-            FormBuilderCheckbox(
+            FormBuilderFilterChip<String>(
+              autovalidateMode: AutovalidateMode.onUserInteraction,
               name: 'open_now',
-              title: const Text('Open now'),
-              initialValue: false,
+              options: const [
+                FormBuilderChipOption(
+                  value: 'Open now',
+                ),
+              ],
             ),
 
             // TODO: allow to set the radius of the search
