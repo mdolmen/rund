@@ -5,6 +5,7 @@ import asyncio
 import builtins
 
 from pydantic import BaseModel
+from fastapi import HTTPException
 
 import utm
 
