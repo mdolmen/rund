@@ -11,7 +11,7 @@ services:
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_DB: autour
-      POSTGRES_USER: autour
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: mypassword
     depends_on:
       - postgres
@@ -22,7 +22,7 @@ services:
     container_name: autour-db
     environment:
       POSTGRES_DB: autour
-      POSTGRES_USER: autour
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: mypassword
     ports:
       - "5432:5432"

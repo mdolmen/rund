@@ -2,20 +2,21 @@
 
 # Define variables
 DB_NAME="autour"
-DB_USER="autour"
+DB_USER="postgres"
 DB_PASSWORD="mypassword"
 #DB_HOST="localhost"
 DB_HOST="postgres"
 DB_PORT="5432"
+#PG_POSTGRES_PASSWORD="mysecretpassword"
 
 # Set PostgreSQL password for the 'postgres' user
-export PGPASSWORD="mysecretpassword"
+#export PGPASSWORD="mysecretpassword"
 
 # SQL script to create schema and tables
 SCHEMA_SQL="
 CREATE SCHEMA IF NOT EXISTS autour;
 
-CREATE TABLE IF NOT EXISTS autour.countries (
+CREATE TABLE IF NOT EXISTS countries (
   country_id SERIAL PRIMARY KEY,
   country_iso CHAR(2) NOT NULL,
   country_name VARCHAR(80) NOT NULL,
@@ -280,14 +281,14 @@ VALUES
 (250, 'SX', 'SINT MAARTEN', 'Sint Maarten', 'SXM', '534', '1'),
 (251, 'SS', 'SOUTH SUDAN', 'South Sudan', 'SSD', '728', '211');
 
-CREATE TABLE IF NOT EXISTS autour.zones (
+CREATE TABLE IF NOT EXISTS zones (
     z_id SERIAL PRIMARY KEY,
     z_number INT NOT NULL,
     z_band CHAR,
     UNIQUE (z_number, z_band)
 );
 
-CREATE TABLE IF NOT EXISTS autour.subzones (
+CREATE TABLE IF NOT EXISTS subzones (
     subz_id SERIAL PRIMARY KEY,
     subz_longitude FLOAT,
     subz_latitude FLOAT,
@@ -295,7 +296,7 @@ CREATE TABLE IF NOT EXISTS autour.subzones (
     UNIQUE (subz_longitude, subz_latitude, subz_zone)
 );
 
-CREATE TABLE IF NOT EXISTS autour.area_covered (
+CREATE TABLE IF NOT EXISTS area_covered (
     area_id SERIAL PRIMARY KEY,
     area_subzone INT REFERENCES subzones (subz_id),
     area_x INT,
@@ -304,8 +305,8 @@ CREATE TABLE IF NOT EXISTS autour.area_covered (
     UNIQUE (area_subzone, area_x, area_y)
 );
 
-CREATE TABLE IF NOT EXISTS autour.places (
-    place_id SERIAL PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS places (
+    place_id SERIAL,
     place_formatted_address TEXT,
     place_google_maps_uri TEXT,
     place_primary_type TEXT,
@@ -316,28 +317,79 @@ CREATE TABLE IF NOT EXISTS autour.places (
     place_country INT REFERENCES countries (country_id),
     place_area_id INT REFERENCES area_covered (area_id),
     last_updated DATE,
-    UNIQUE (place_formatted_address)
-);
+    PRIMARY KEY (place_formatted_address, place_primary_type)
+) PARTITION BY LIST (place_primary_type);
 "
 
+categories=(
+"Automotive"
+"Business"
+"Culture"
+"Education"
+"Entertainment and Recreation"
+"Finance"
+"Food and Drink"
+"Geographical Areas"
+"Government"
+"Health and Wellness"
+"Lodging"
+"Places of Worship"
+"Services"
+"Shopping"
+"Sports"
+"Transportation"
+)
+
+subcats=(
+"('car_dealer', 'car_rental', 'car_repair', 'car_wash', 'electric_vehicle_charging_station', 'gas_station', 'parking', 'rest_stop')"
+"('farm')"
+"('art_gallery', 'museum', 'performing_arts_theater')"
+"('library', 'preschool', 'primary_school', 'school', 'secondary_school', 'university')"
+"('amusement_center', 'amusement_park', 'aquarium', 'banquet_hall', 'bowling_alley', 'casino', 'community_center', 'convention_center', 'cultural_center', 'dog_park', 'event_venue', 'hiking_area', 'historical_landmark', 'marina', 'movie_rental', 'movie_theater', 'national_park', 'night_club', 'park', 'tourist_attraction', 'visitor_center', 'wedding_venue
+zoo')"
+"('accounting', 'atm', 'bank')"
+"('american_restaurant', 'bakery', 'bar', 'barbecue_restaurant', 'brazilian_restaurant', 'breakfast_restaurant', 'brunch_restaurant', 'cafe', 'chinese_restaurant', 'coffee_shop', 'fast_food_restaurant', 'french_restaurant', 'greek_restaurant', 'hamburger_restaurant', 'ice_cream_shop', 'indian_restaurant', 'indonesian_restaurant', 'italian_restaurant', 'japanese_restaurant', 'korean_restaurant 	lebanese_restaurant', 'meal_delivery', 'meal_takeaway', 'mediterranean_restaurant', 'mexican_restaurant', 'middle_eastern_restaurant', 'pizza_restaurant', 'ramen_restaurant', 'restaurant', 'sandwich_shop', 'seafood_restaurant', 'spanish_restaurant', 'steak_house', 'sushi_restaurant', 'thai_restaurant', 'turkish_restaurant', 'vegan_restaurant', 'vegetarian_restaurant
+vietnamese_restaurant')"
+"('administrative_area_level_1', 'administrative_area_level_2', 'country', 'locality', 'postal_code', 'school_district')"
+"('city_hall', 'courthouse', 'embassy', 'fire_station', 'local_government_office', 'police
+post_office')"
+"('dental_clinic', 'dentist', 'doctor', 'drugstore', 'hospital', 'medical_lab', 'pharmacy', 'physiotherapist
+spa')"
+"('bed_and_breakfast', 'campground', 'camping_cabin', 'cottage', 'extended_stay_hotel', 'farmstay', 'guest_house', 'hostel', 'hotel', 'lodging', 'motel', 'private_guest_room', 'resort_hotel', 'rv_park')"
+"('church', 'hindu_temple', 'mosque', 'synagogue')"
+"('barber_shop', 'beauty_salon', 'cemetery', 'child_care_agency', 'consultant', 'courier_service', 'electrician', 'florist', 'funeral_home', 'hair_care', 'hair_salon', 'insurance_agency', 'laundry', 'lawyer', 'locksmith', 'moving_company', 'painter', 'plumber', 'real_estate_agency', 'roofing_contractor', 'storage', 'tailor', 'telecommunications_service_provider', 'travel_agency', 'veterinary_care')"
+"('auto_parts_store', 'bicycle_store', 'book_store', 'cell_phone_store', 'clothing_store', 'convenience_store', 'department_store', 'discount_store', 'electronics_store', 'furniture_store', 'gift_shop', 'grocery_store', 'hardware_store', 'home_goods_store', 'home_improvement_store', 'jewelry_store', 'liquor_store', 'market', 'pet_store', 'shoe_store', 'shopping_mall', 'sporting_goods_store', 'store', 'supermarket', 'wholesaler')"
+"('athletic_field', 'fitness_center', 'golf_course', 'gym', 'playground', 'ski_resort', 'sports_club', 'sports_complex', 'stadium', 'swimming_pool')"
+"('airport', 'bus_station', 'bus_stop', 'ferry_terminal', 'heliport', 'light_rail_station', 'park_and_ride', 'subway_station', 'taxi_stand', 'train_station', 'transit_depot', 'transit_station', 'truck_stop')"
+)
+
+
 echo "Removing database '$DB_NAME'..."
-psql -h $DB_HOST -p $DB_PORT -U postgres -c "DROP DATABASE IF EXISTS $DB_NAME;"
+PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U postgres -c "DROP DATABASE IF EXISTS $DB_NAME;"
 
 # Create the database
 echo "Creating database '$DB_NAME'..."
-createdb -h $DB_HOST -p $DB_PORT -U postgres $DB_NAME
-
-# Create the user
-echo "Creating user '$DB_USER'..."
-psql -h $DB_HOST -p $DB_PORT -U postgres -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';"
+PGPASSWORD=$DB_PASSWORD createdb -h $DB_HOST -p $DB_PORT -U postgres $DB_NAME
 
 # Grant privileges to the user on the database
 echo "Granting privileges on database '$DB_NAME' to user '$DB_USER'..."
-psql -h $DB_HOST -p $DB_PORT -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
+PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
 
 # Create the schema and tables
 echo "Creating schema and tables in database '$DB_NAME'..."
 PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "$SCHEMA_SQL"
+
+# Create table partitions for places
+length=${#categories[@]}
+for ((i=0; i<$length; i++)); do
+  category=${categories[$i]}
+
+  # Format: Replace spaces with underscores and convert to lowercase
+  formatted_category=$(echo $category | tr '[:upper:]' '[:lower:]' | sed 's/ /_/g')
+
+  echo "Creating partitions for table places..."
+  PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "CREATE TABLE places_$formatted_category PARTITION OF places FOR VALUES IN ${subcats[$i]};"
+done
 
 if [ $? -eq 0 ]; then
     echo "Database setup completed successfully, including schema and tables."
