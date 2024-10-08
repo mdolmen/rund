@@ -13,7 +13,7 @@ class Database:
     def __init__(self):
         conn_params = {
             'dbname': 'autour',
-            'user': 'autour',
+            'user': 'postgres',
             'password': 'mypassword',
             'host': 'postgres',
             'port': '5432'
@@ -109,7 +109,7 @@ class Database:
         subzone_id = 0
         request = """
         SELECT subz.subz_id
-        FROM autour.subzones AS subz
+        FROM subzones AS subz
         WHERE subz.subz_longitude = %s AND subz.subz_latitude = %s;
         """
 
@@ -217,7 +217,7 @@ class Database:
             last_updated
         )
         VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
-        ON CONFLICT (place_formatted_address)
+        ON CONFLICT (place_formatted_address, place_primary_type)
         DO
         UPDATE
         SET
@@ -274,7 +274,7 @@ class Database:
                 'last_updated', last_updated
             )
         )
-        FROM autour.places
+        FROM places
         WHERE {conditions};
         """
 
@@ -291,7 +291,7 @@ class Database:
         covered = 0
         request = """
         SELECT area_id, area_covered
-        FROM autour.area_covered
+        FROM area_covered
         WHERE area_x = %s AND area_y = %s;
         """
 
@@ -309,7 +309,7 @@ class Database:
         covered = 0
         request = """
         SELECT area_subzone, area_x, area_y, area_covered
-        FROM autour.area_covered
+        FROM area_covered
         WHERE area_id = %s;
         """
 
@@ -326,8 +326,8 @@ class Database:
         area_id = 0
         request = """
         SELECT area_covered.area_id
-        FROM autour.area_covered
-        JOIN autour.subzones ON area_covered.area_subzone = subzones.subz_id
+        FROM area_covered
+        JOIN subzones ON area_covered.area_subzone = subzones.subz_id
         WHERE subzones.subz_longitude = %s
         AND subzones.subz_latitude = %s
         AND area_covered.area_x = %s
@@ -344,7 +344,7 @@ class Database:
         covered = False
         request = """
         SELECT area_covered
-        FROM autour.area_covered
+        FROM area_covered
         WHERE area_id = %s
         """
 
@@ -357,7 +357,7 @@ class Database:
 
     def set_area_covered(self, area_id, covered):
         request = """
-        UPDATE autour.area_covered
+        UPDATE area_covered
         SET area_covered = %s
         WHERE area_id = %s;
         """
