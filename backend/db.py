@@ -186,7 +186,7 @@ class Database:
         data = []
         for x in range(0, 64):
             for y in range(0, 128):
-                data.append((subzone_id, x, y, False))
+                data.append((subzone_id, x, y, 0))
 
         cursor = self.conn.cursor()
         cursor.executemany(request, data)
@@ -250,13 +250,25 @@ class Database:
 
         return
 
-    def get_places(self, area_ids):
-        # Prepare WHERE conditions
-        conditions = ""
+    def get_places(self, area_ids, types):
+        # Prepare WHERE clause conditions
+        # Conditions on area id
+        conditions = "place_area_id IN ("
         for area_id in area_ids:
-            if conditions != "":
-                conditions += " OR "
-            conditions += "place_area_id = %s"
+            conditions += f"{area_id}, "
+        conditions = conditions[:-2]
+        conditions += ")"
+
+        # Conditions on primary_type
+        conditions_types = ""
+        if conditions != "":
+            conditions_types += " AND "
+        conditions_types += "place_primary_type IN ("
+        for t in types:
+            conditions_types += f"'{t}', "
+        conditions_types = conditions_types[:-2]
+        conditions_types += ")"
+        print(conditions + conditions_types)
 
         request = f"""
         SELECT json_agg(
@@ -275,7 +287,7 @@ class Database:
             )
         )
         FROM places
-        WHERE {conditions};
+        WHERE {conditions + conditions_types};
         """
 
         places = []
@@ -341,7 +353,7 @@ class Database:
         return area_id
 
     def get_area_covered(self, area_id):
-        covered = False
+        covered = 0
         request = """
         SELECT area_covered
         FROM area_covered
@@ -355,11 +367,11 @@ class Database:
 
         return covered
 
-    def set_area_covered(self, area_id, covered):
+    def set_area_covered(self, area_id, covered_bitmap):
         request = """
         UPDATE area_covered
         SET area_covered = %s
         WHERE area_id = %s;
         """
 
-        self.execute_request_noresult(request, (covered, area_id))
+        self.execute_request_noresult(request, (covered_bitmap, area_id))

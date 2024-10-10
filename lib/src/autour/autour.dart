@@ -325,6 +325,7 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
             'radius': 500.0,
           },
         },
+        'placesType': type,
       }),
     );
 

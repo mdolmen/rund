@@ -301,7 +301,7 @@ CREATE TABLE IF NOT EXISTS area_covered (
     area_subzone INT REFERENCES subzones (subz_id),
     area_x INT,
     area_y INT,
-    area_covered BOOLEAN,
+    area_covered INT,
     UNIQUE (area_subzone, area_x, area_y)
 );
 

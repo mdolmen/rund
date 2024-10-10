@@ -6,6 +6,7 @@ import builtins
 
 from pydantic import BaseModel
 from fastapi import HTTPException
+from enum import Enum
 
 import utm
 
@@ -13,6 +14,25 @@ from utm import AREA_WIDTH, AREA_HEIGHT, PointInfo
 from db import Database
 
 API_KEY_GPLACES = ""
+
+PLACE_TYPES = {
+    "Automotive": 0,
+    "Business": 1,
+    "Culture": 2,
+    "Education": 3,
+    "Entertainment and Recreation": 4,
+    "Finance": 5,
+    "Food and Drink": 6,
+    "Geographical Areas": 7,
+    "Government": 8,
+    "Health and Wellness": 9,
+    "Lodging": 10,
+    "Places of Worship": 11,
+    "Services": 12,
+    "Shopping": 13,
+    "Sports": 14,
+    "Transportation": 15,
+}
 
 class Location(BaseModel):
     latitude: float
@@ -25,10 +45,17 @@ class Circle(BaseModel):
 class LocationRestriction(BaseModel):
     circle: Circle
 
+# Params expected by the external API (i.e. Places API)
 class RequestBody(BaseModel):
     includedTypes: list[str]
     rankPreference: str
     locationRestriction: LocationRestriction
+
+class AutourRequest(BaseModel):
+    includedTypes: list[str]
+    rankPreference: str
+    locationRestriction: LocationRestriction
+    placesType: str
 
 class Places:
     def __init__(self):
@@ -80,14 +107,17 @@ class Places:
 
         return
 
-    def add_places(self, places, area_id):
+    def add_places(self, places, places_type, area_id):
         for place in places:
             self.add_place(place, area_id)
 
-        self.db.set_area_covered(area_id, True)
+        # update the bitmap of area covered by place type
+        bitmap = self.db.get_area_covered(area_id)
+        new_bitmap = bitmap | (1 << PLACE_TYPES[places_type])
+        self.db.set_area_covered(area_id, new_bitmap)
 
-    def get_places_from_db(self, area_id):
-        return self.db.get_places(area_id)
+    def get_places_from_db(self, area_id, types):
+        return self.db.get_places(area_id, types)
 
     def get_area(self, x, y):
         return self.db.get_area(x, y)
@@ -98,13 +128,14 @@ class Places:
     def get_area_id(self, subzone_lon, subzone_lat, x, y):
         return self.db.get_area_id(subzone_lon, subzone_lat, x, y)
 
-    def is_area_covered(self, area_id):
-        return self.db.get_area_covered(area_id)
+    def is_area_covered(self, area_id, places_type):
+        bitmap = self.db.get_area_covered(area_id)
+        return (bitmap & (1 << PLACE_TYPES[places_type]))
 
     def create_subzones_and_areas(self, zone, band):
         return self.db.create_subzones_and_areas(zone, band)
 
-    async def get_places_in_area(self, params, point_info, adjacent_lon,
+    async def get_places_in_area(self, params, places_type, point_info, adjacent_lon,
                                  adjacent_lat):
         """
         Get the places in the area corresponding to given point.
@@ -148,7 +179,7 @@ class Places:
         #print(f"DEBUG: center_lon = {center_lon}, center_lat = {center_lat}")
 
         # Request external API if necessary
-        if self.is_area_covered(area_id):
+        if self.is_area_covered(area_id, places_type):
             print("DEBUG: no request to make")
         else:
             print("DEBUG: requesting external API to get places...")
@@ -156,11 +187,11 @@ class Places:
                                                         center_lat, AREA_WIDTH,
                                                         AREA_HEIGHT)
             print(f"[+] Adding {len(new_places)} places in area_id {area_id}")
-            self.add_places(new_places, area_id)
+            self.add_places(new_places, places_type, area_id)
 
         return area_id
 
-    async def get_places(self, params, expansion_level=1):
+    async def get_places(self, request_params, expansion_level=1):
         """
         Get all the places for the area containing the point formed by
         'longitude' and 'latitude'. Bypass the limitation of 20 places imposed
@@ -174,6 +205,14 @@ class Places:
 
         :return: A list of places.
         """
+        # Parameters for the request to the external service (i.e. Places API)
+        params = RequestBody(
+            includedTypes = request_params.includedTypes,
+            rankPreference = request_params.rankPreference,
+            locationRestriction = request_params.locationRestriction,
+        )
+        places_type = request_params.placesType
+
         center = params.locationRestriction.circle.center
         area_id = -1
         area_ids = []
@@ -182,7 +221,7 @@ class Places:
         point_info = utm.get_area(center.latitude, center.longitude)
 
         # Get places for that area
-        area_id = await self.get_places_in_area(params, point_info, -1, -1)
+        area_id = await self.get_places_in_area(params, places_type, point_info, -1, -1)
         area_ids.append(area_id)
 
         # Get places in surronding areas. Depends on the radius we want to
@@ -196,9 +235,10 @@ class Places:
             for j in range(-i, i + 1):
                 adjacent_lon = point_info.area_center_lon + AREA_WIDTH * j
                 adjacent_lat = point_info.area_center_lat + AREA_HEIGHT * i
-                area_id = await self.get_places_in_area(params, point_info,
-                                              adjacent_lon,
-                                              adjacent_lat)
+                area_id = await self.get_places_in_area(params, places_type,
+                                                        point_info,
+                                                        adjacent_lon,
+                                                        adjacent_lat)
                 area_ids.append(area_id)
 
             # Below
@@ -206,9 +246,10 @@ class Places:
             for j in range(-i, i + 1):
                 adjacent_lon = point_info.area_center_lon + AREA_WIDTH * j
                 adjacent_lat = point_info.area_center_lat - AREA_HEIGHT * i
-                area_id = await self.get_places_in_area(params, point_info,
-                                              adjacent_lon,
-                                              adjacent_lat)
+                area_id = await self.get_places_in_area(params, places_type,
+                                                        point_info,
+                                                        adjacent_lon,
+                                                        adjacent_lat)
                 area_ids.append(area_id)
 
             # Left side
@@ -216,9 +257,10 @@ class Places:
             for j in range(-i + 1, i):
                 adjacent_lon = point_info.area_center_lon - AREA_WIDTH * i
                 adjacent_lat = point_info.area_center_lat + AREA_HEIGHT * j
-                area_id = await self.get_places_in_area(params, point_info,
-                                              adjacent_lon,
-                                              adjacent_lat)
+                area_id = await self.get_places_in_area(params, places_type,
+                                                        point_info,
+                                                        adjacent_lon,
+                                                        adjacent_lat)
                 area_ids.append(area_id)
 
             # Right side
@@ -226,14 +268,15 @@ class Places:
             for j in range(-i + 1, i):
                 adjacent_lon = point_info.area_center_lon + AREA_WIDTH * i
                 adjacent_lat = point_info.area_center_lat + AREA_HEIGHT * j
-                area_id = await self.get_places_in_area(params, point_info,
-                                              adjacent_lon,
-                                              adjacent_lat)
+                area_id = await self.get_places_in_area(params, places_type,
+                                                        point_info,
+                                                        adjacent_lon,
+                                                        adjacent_lat)
                 area_ids.append(area_id)
 
         print(f"DEBUG: area_id = {area_id}")
         print(f"DEBUG: area_ids = {area_ids}")
-        new_places = self.get_places_from_db(area_ids)
+        new_places = self.get_places_from_db(area_ids, params.includedTypes)
         print(f"[+] get_places, len(new_places) = {len(new_places)}")
 
         return new_places

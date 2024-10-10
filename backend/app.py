@@ -1,7 +1,7 @@
 import requests
 import json
 
-from places import Places, RequestBody, LocationRestriction, Circle, Location
+from places import Places, RequestBody, AutourRequest, Location
 
 from fastapi import FastAPI, Body, HTTPException
 from fastapi.encoders import jsonable_encoder
@@ -18,7 +18,7 @@ async def index():
     return {"message": "ping ok"}
 
 @app.post("/get-places")
-async def get_places(params: RequestBody):
+async def get_places(params: AutourRequest):
     new_places = await places.get_places(params)
 
     return new_places
