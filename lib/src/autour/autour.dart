@@ -1221,10 +1221,17 @@ class PlaceTypeFilter extends StatelessWidget {
   ];
 
 
-  void _handleButtonPressed() {
+  bool _handleButtonPressed() {
     _formKey.currentState?.validate();
-    String? filters = _formKey.currentState?.instantValue.toString();
+    String filters = _formKey.currentState?.instantValue.toString() ?? "";
+
+    // Ensure a type has been selected
+    if (filters.contains("null")) {
+      return false;
+    }
+
     searchBtnCallback("Wednesday", filters ?? "{}");
+    return true;
   }
 
   @override
@@ -1239,7 +1246,7 @@ class PlaceTypeFilter extends StatelessWidget {
               // List of types
               FormBuilderChoiceChip<String>(
                 autovalidateMode: AutovalidateMode.onUserInteraction,
-                //decoration: const InputDecoration(labelText: 'Select type'),
+                decoration: const InputDecoration(labelText: 'Select the type of place to get'),
                 name: 'types',
                 options: types
                     .map(
@@ -1274,8 +1281,9 @@ class PlaceTypeFilter extends StatelessWidget {
           ),
           child: const Text('Search'),
           onPressed: () {
-            _handleButtonPressed();
-            Navigator.of(context).pop();
+            if (_handleButtonPressed()) {
+              Navigator.of(context).pop();
+            }
           },
         ),
       ],
