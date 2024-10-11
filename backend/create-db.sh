@@ -390,6 +390,8 @@ for ((i=0; i<$length; i++)); do
   echo "Creating partitions for table places..."
   PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "CREATE TABLE places_$formatted_category PARTITION OF places FOR VALUES IN ${subcats[$i]};"
 done
+# Default partition for unknown values
+  PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "CREATE TABLE places_default PARTITION OF places DEFAULT;"
 
 if [ $? -eq 0 ]; then
     echo "Database setup completed successfully, including schema and tables."
