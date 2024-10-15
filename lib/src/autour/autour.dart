@@ -251,14 +251,31 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
     String type = filtersJson["types"] ?? "";
     print("DEBUG: (_searchNearby) type = $type");
 
+    // Get current position
+    if (_lastKnownCoords.lat == -360 && _lastKnownCoords.lng == -360) {
+      String currentAddress = await _getCurrentAddress();
+      _lastKnownPosition = currentAddress;
+    }
+
     _searchOngoing = true;
     setState(() {});
 
     List<Place> places = [];
 
-    // TODO: don't call the backend if on offline mode
+    // Search for places either calling the backend or using the local sqlite db
+    // (cache).
+    if (_online) {
+      places = await _getPlaces(type);
 
-    places = await _getPlaces(type);
+      // Add all the places to the local db
+      for (final place in places) {
+        _insertPlace(place);
+      }
+    }
+    else {
+      places = await _getPlacesFromLocalDb(type);
+    }
+
     // TODO: requires adding a function to get places from local db
     //if (_positionHasChanged) {
     //  places = await _getPlaces();
@@ -270,15 +287,6 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
     //  print("DEBUG: len(_places) = ${_places.length}");
     //  places = _places;
     //}
-
-    // Add all the places to the local db
-    for (final place in places) {
-      // TODO: don't insert if offline mode is on
-      _insertPlace(place);
-
-      //if (_applyFilters(today, filters, place) == true)
-      //  filteredPlaces.add(place);
-    }
 
     _searchOngoing = false;
     setState(() {});
@@ -302,11 +310,6 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
     //  - pass positionHasChanged in parameter
     //  - if not positionHasChanged, do the same as offline mode, aka get places
     //  from local db (don't call the backend API)
-
-    if (_lastKnownCoords.lat == -360 && _lastKnownCoords.lng == -360) {
-      String currentAddress = await _getCurrentAddress();
-      _lastKnownPosition = currentAddress;
-    }
 
     final response = await http.post(
       Uri.parse(BACKEND_URL+'/get-places'),
@@ -337,6 +340,33 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
     } else {
       throw Exception('[-] Failed to get places.');
     }
+
+    return places;
+  }
+
+  Future<List<Place>> _getPlacesFromLocalDb(String type) async {
+    print("DEBUG: (_getPlacesFromLocalDb) getting places from local db...");
+    List<Place> places = [];
+
+    if (type == "") {
+      print("[-] (_getPlaces) Error: empty type when getting places");
+    }
+
+    List<String> subtypes = placeTypes[type] ?? [];
+
+    // Get the data from local db
+    //final data = dbHelper.queryPlaces(_lastKnownCoords.lat,
+    //    _lastKnownCoords.lng, subtypes);
+
+    List<Map<String, dynamic>> placesJson = await dbHelper.queryPlaces(
+      _lastKnownCoords.lat,
+      _lastKnownCoords.lng,
+      subtypes
+    );
+
+    // Parse to Place objects
+    places = placesJson.map((json) => Place.fromJson(json)).toList();
+    print("DEBUG: (_getPlaces) nb places: ${places.length}");
 
     return places;
   }
@@ -621,6 +651,15 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
                         onPressed: () => _showFilters(context),
                         padding: EdgeInsets.zero,
                       ),
+                      Switch(
+                        value: _online,
+                        activeColor: Colors.blue,
+                        onChanged: (bool value) {
+                          setState(() {
+                            _online = value;
+                          });
+                        },
+                      ),
                     ],
                   ),
                 ),
@@ -841,10 +880,10 @@ class Place {
       googleMapsUri: json['place_google_maps_uri'] ?? "Unknown Google Maps Uri",
       primaryType: json['place_primary_type'] ?? "Unknown primary type",
       displayName: json['place_display_name'] ?? "displayName",
-      location: json['place_longitude'] != null && json['place_latitude'] != null
+      location: json['place_longitude'] != "null" && json['place_latitude'] != "null"
         ? Location(lat: json['place_latitude'], lng: json['place_longitude'])
         : Location(lat: -360, lng: -360),
-      currentOpeningHours: json['place_current_opening_hours'] != null
+      currentOpeningHours: json['place_current_opening_hours'] != "null"
         && json['place_current_opening_hours'] != "\"Unknown\""
         ? OpeningHours.fromJson(jsonDecode(json['place_current_opening_hours']))
         : null,
