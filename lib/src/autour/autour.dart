@@ -796,7 +796,7 @@ class PlaceListItem extends StatelessWidget {
                       _computeDistance(placeData.location.lat,
                           placeData.location.lng),
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 12,
                       ),
                       textAlign: TextAlign.center,
                     ),
