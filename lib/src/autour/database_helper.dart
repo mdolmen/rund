@@ -49,7 +49,40 @@ class DatabaseHelper {
 
   Future<int> insertPlace(Map<String, dynamic> place) async {
     Database db = await database;
-    return await db.insert('places', place);
+    String query = """
+      INSERT INTO places (
+        place_formatted_address, place_google_maps_uri, place_primary_type,
+        place_display_name, place_longitude, place_latitude,
+        place_current_opening_hours, place_country, place_area_id, last_updated
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(place_formatted_address)
+      DO UPDATE SET
+        place_google_maps_uri = excluded.place_google_maps_uri,
+        place_primary_type = excluded.place_primary_type,
+        place_display_name = excluded.place_display_name,
+        place_longitude = excluded.place_longitude,
+        place_latitude = excluded.place_latitude,
+        place_current_opening_hours = excluded.place_current_opening_hours,
+        place_country = excluded.place_country,
+        place_area_id = excluded.place_area_id,
+        last_updated = excluded.last_updated;
+    """;
+
+    List<dynamic> args = [
+      place['place_formatted_address'],
+      place['place_google_maps_uri'],
+      place['place_primary_type'],
+      place['place_display_name'],
+      place['place_longitude'],
+      place['place_latitude'],
+      place['place_current_opening_hours'],
+      place['place_country'],
+      place['place_area_id'],
+      place['last_updated'],
+    ];
+
+    return await db.rawInsert(query, args);
   }
 
   Future<List<Map<String, dynamic>>> queryAllPlaces() async {

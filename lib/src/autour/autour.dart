@@ -534,7 +534,6 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
 
   Future<void> _insertPlace(Place place) async {
     await dbHelper.insertPlace({
-      'place_id': place.id,
       'place_formatted_address': place.formattedAddress,
       'place_google_maps_uri': place.googleMapsUri,
       'place_primary_type': place.primaryType,
@@ -814,7 +813,6 @@ class PlaceListItem extends StatelessWidget {
 }
 
 class Place {
-  final int id;
   final String formattedAddress;
   final String googleMapsUri;
   final String primaryType;
@@ -826,7 +824,6 @@ class Place {
   final DateTime lastUpdated;
 
   const Place({
-    required this.id,
     required this.formattedAddress,
     required this.googleMapsUri,
     required this.primaryType,
@@ -840,7 +837,6 @@ class Place {
 
   factory Place.fromJson(Map<String, dynamic> json) {
     return Place(
-      id: json['place_id'] ?? 0,
       formattedAddress: json['place_formatted_address'] ?? "Unknown address",
       googleMapsUri: json['place_google_maps_uri'] ?? "Unknown Google Maps Uri",
       primaryType: json['place_primary_type'] ?? "Unknown primary type",
