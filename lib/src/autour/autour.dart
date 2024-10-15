@@ -621,11 +621,22 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
               Expanded(
                 child: Container(
                   alignment: Alignment.centerRight,
-                  child: IconButton(
-                    iconSize: 30,
-                    icon: const Icon(Icons.pin_drop),
-                    onPressed: () => _showCurrentPosition(context),
-                    padding: EdgeInsets.zero,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      IconButton(
+                        iconSize: 30,
+                        icon: const Icon(Icons.pin_drop),
+                        onPressed: () => _showCurrentPosition(context),
+                        padding: EdgeInsets.zero,
+                      ),
+                      IconButton(
+                        iconSize: 30,
+                        icon: const Icon(Icons.filter_list_rounded),
+                        onPressed: () => _showFilters(context),
+                        padding: EdgeInsets.zero,
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -645,12 +656,6 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
                   alignment: Alignment.center,
                   child: Row(
                     children: [
-                      IconButton(
-                        iconSize: 30,
-                        icon: const Icon(Icons.filter_list_rounded),
-                        onPressed: () => _showFilters(context),
-                        padding: EdgeInsets.zero,
-                      ),
                       Switch(
                         value: _online,
                         activeColor: Colors.blue,
@@ -659,6 +664,13 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
                             _online = value;
                           });
                         },
+                      ),
+                      Text(
+                        _online ? 'Online' : 'Offline',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: _online ? Colors.blue : Colors.grey,
+                        ),
                       ),
                     ],
                   ),
