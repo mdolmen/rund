@@ -74,7 +74,7 @@ class Database:
             print(f"\n\terror: {error}")
             print(f"\n\trequest: {request}")
 
-    def get_country(self, country_name):
+    def get_country_id(self, country_name):
         # A Place in United States has 'USA' as country name in the formatted
         # address field (we have 'United States' in our db for the 'nicename').
         request = """
@@ -88,6 +88,18 @@ class Database:
             return result[0][0]
         else:
             return 0
+
+    def get_country_name(self, country_code):
+        request = """
+        SELECT country_name FROM countries
+        WHERE country_iso = %s;
+        """
+        result = self.execute_request(request, (country_code,))
+
+        if result:
+            return result[0][0]
+        else:
+            return ""
 
 
     def get_zone_id(self, zone, band):

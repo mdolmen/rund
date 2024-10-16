@@ -15,7 +15,7 @@ from db import Database
 
 API_KEY_GPLACES = ""
 
-PLACE_TYPES = {
+PLACE_TYPES_GAPI = {
     "Automotive": 0,
     "Business": 1,
     "Culture": 2,
@@ -34,6 +34,27 @@ PLACE_TYPES = {
     "Transportation": 15,
 }
 
+PLACE_TYPES_OAPI = {
+    "Sustenance": 0,
+    "Education": 1,
+    "Transportation": 2,
+    "Financial": 3,
+    "Healthcare": 4,
+    "Entertainment Arts Culture": 5,
+    "Public Service": 6,
+    "Facilities": 7,
+    "Waste Management": 8,
+    "Others": 9
+}
+
+PLACE_TYPES = PLACE_TYPES_OAPI
+
+# Limit of places we can get from a single request
+RESULTS_LIMIT_GAPI = 20
+
+# Limit of places we can get from a single request (Overpass API)
+RESULTS_LIMIT_OAPI = 50000
+
 class Location(BaseModel):
     latitude: float
     longitude: float
@@ -45,10 +66,15 @@ class Circle(BaseModel):
 class LocationRestriction(BaseModel):
     circle: Circle
 
-# Params expected by the external API (i.e. Places API)
+# Params expected by the Google Places API
 class RequestBody(BaseModel):
     includedTypes: list[str]
     rankPreference: str
+    locationRestriction: LocationRestriction
+
+# Params expected by the Overpass API
+class RequestBodyOAPI(BaseModel):
+    includedTypes: list[str]
     locationRestriction: LocationRestriction
 
 class AutourRequest(BaseModel):
@@ -81,17 +107,60 @@ class Places:
 
         return subzone_id
 
-    def add_place(self, place, area_id):
-        formatted_address = place.get("formattedAddress", "Unknown")
-        google_maps_uri = place.get("googleMapsUri", "Unknown")
-        primary_type = place.get("primaryType", "Unknown")
-        display_name_tmp = place.get("displayName", "Unknown")
-        display_name = display_name_tmp.get("text", "Unknown")
-        longitude = place["location"]["longitude"]
-        latitude = place["location"]["latitude"]
-        current_opening_hours = place.get("currentOpeningHours", "Unknown")
+    def add_place_gapi(self, place, area_id):
+        # format: housenumber street, postcode city, country
+        formatted_address = place.get("formattedAddress", "")
+        google_maps_uri = place.get("googleMapsUri", "")
+        primary_type = place.get("primaryType", "")
+        display_name_tmp = place.get("displayName", "")
+        display_name = display_name_tmp.get("text", "")
+        longitude = place.get("location", {}).get("longitude", 0.0)
+        latitude = place.get("location", {}).get("latitude", 0.0)
+        current_opening_hours = place.get("currentOpeningHours", "")
         current_opening_hours = json.dumps(current_opening_hours, ensure_ascii=False)
-        country_id = self.db.get_country(place["formattedAddress"].split(" ")[-1])
+        country_id = self.db.get_country_id(place["formattedAddress"].split(" ")[-1])
+
+        self.db.insert_place(
+            formatted_address,
+            google_maps_uri,
+            primary_type,
+            display_name,
+            longitude,
+            latitude,
+            current_opening_hours,
+            country_id,
+            area_id
+        )
+
+        return
+
+    def add_place_oapi(self, place, area_id):
+        # format: housenumber street, postcode city, country
+        tags = place.get('tags', {})
+        print(place)
+        print(tags)
+
+        print(tags.get("addr:country", "XX"))
+        country = self.db.get_country_name(tags.get("addr:country", "XX"))
+        print(country)
+        country_id = 0
+        if country != "":
+            country_id = self.db.get_country_id(country)
+        print(country_id)
+
+        formatted_address = tags.get("addr:housenumber", "")
+        formatted_address += " " + tags.get("addr:street", "Unknown")
+        formatted_address += ", " + tags.get("addr:postcode", "Unknown")
+        formatted_address += " " + tags.get("addr:city", "Unknown")
+        formatted_address += ", " + country
+
+        google_maps_uri = ""
+        primary_type = tags.get("amenity", "")
+        display_name = tags.get("name", "")
+        longitude = place.get("lon", 0.0)
+        latitude = place.get("lat", 0.0)
+        current_opening_hours = tags.get("opening_hours", "")
+        current_opening_hours = json.dumps(current_opening_hours, ensure_ascii=False)
 
         self.db.insert_place(
             formatted_address,
@@ -109,7 +178,8 @@ class Places:
 
     def add_places(self, places, places_type, area_id):
         for place in places:
-            self.add_place(place, area_id)
+            #self.add_place_gapi(place, area_id)
+            self.add_place_oapi(place, area_id)
 
         # update the bitmap of area covered by place type
         bitmap = self.db.get_area_covered(area_id)
@@ -277,7 +347,10 @@ class Places:
         print(f"DEBUG: area_id = {area_id}")
         print(f"DEBUG: area_ids = {area_ids}")
         new_places = self.get_places_from_db(area_ids, params.includedTypes)
-        print(f"[+] get_places, len(new_places) = {len(new_places)}")
+        if (new_places == None):
+            new_places = []
+        else:
+            print(f"[+] get_places, len(new_places) = {len(new_places)}")
 
         return new_places
 
@@ -300,12 +373,14 @@ class Places:
         )
         params.locationRestriction.circle = new_center
 
-        tmp = await self.get_places_gapi(params)
+        #tmp = await self.get_places_gapi(params)
+        tmp = await self.get_places_oapi(params)
 
-        # We reached the limit of the Google Places API. It is very likely that
+        # We reached the limit of results for the API. It is very likely that
         # the area contain more places. Split it in four squares and request
-        # again.
-        if len(tmp) == 20:
+        # again. Mandatory if using the Places API, however pretty much useless
+        # when using the Overpass API (50k...).
+        if len(tmp) == RESULTS_LIMIT_OAPI:
             # Square (0, 0)
             new_lon, new_lat = self.split_area(center_lon, center_lat, width/2, height/2, 0, 0)
             places += await self.get_places_external(params, new_lon, new_lat,
@@ -381,3 +456,35 @@ class Places:
                 print(response.json())
 
         return data
+
+    async def get_places_oapi(self, params: RequestBodyOAPI):
+        url = "https://overpass-api.de/api/interpreter"
+        radius = int(params.locationRestriction.circle.radius)
+        lat = params.locationRestriction.circle.center.latitude
+        lon = params.locationRestriction.circle.center.longitude
+        amenities = '|'.join(params.includedTypes)
+        places = {}
+
+        # Overpass query to get places around the given latitude/longitude with opening_hours
+        overpass_query = f"""
+        [out:json];
+        node
+          [amenity~"{amenities}"]
+          (around:{radius},{lat},{lon});
+        out body;
+        """
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, params={'data': overpass_query})
+
+        if response.status_code != 200:
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+
+        # Parse the JSON response
+        data = response.json()
+        if data == "{}":
+            print("[-] get_places_oapi, nothing returned...")
+            return
+        places = data.get('elements', [])
+
+        return places

@@ -12,7 +12,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:map_launcher/map_launcher.dart';
 
 import 'database_helper.dart';
-import 'place_types.dart';
+//import 'place_types_gapi.dart';
+import 'place_types_oapi.dart';
 
 const String BACKEND_URL = "http://vps-433a4dd6.vps.ovh.net:8080";
 //const String BACKEND_URL = "http://127.0.0.1:8080";
@@ -888,18 +889,29 @@ class Place {
 
   factory Place.fromJson(Map<String, dynamic> json) {
     return Place(
-      formattedAddress: json['place_formatted_address'] ?? "Unknown address",
-      googleMapsUri: json['place_google_maps_uri'] ?? "Unknown Google Maps Uri",
-      primaryType: json['place_primary_type'] ?? "Unknown primary type",
-      displayName: json['place_display_name'] ?? "displayName",
+      formattedAddress: json['place_formatted_address'] != ""
+        ? json['place_formatted_address']
+        : "Unknown",
+      googleMapsUri: json['place_google_maps_uri'] != ""
+        ? json['place_google_maps_uri']
+        : "Unknown",
+      primaryType: json['place_primary_type'] != ""
+        ? json['place_primary_type']
+        : "Unknown",
+      displayName: json['place_display_name'] != ""
+        ? json['place_display_name']
+        : "Unknown",
       location: json['place_longitude'] != "null" && json['place_latitude'] != "null"
         ? Location(lat: json['place_latitude'], lng: json['place_longitude'])
         : Location(lat: -360, lng: -360),
-      currentOpeningHours: json['place_current_opening_hours'] != "null"
-        && json['place_current_opening_hours'] != "\"Unknown\""
+      currentOpeningHours: (json['place_current_opening_hours'] != "null"
+        && json['place_current_opening_hours'] != "\"\""
+        && json['place_current_opening_hours'] != null)
         ? OpeningHours.fromJson(jsonDecode(json['place_current_opening_hours']))
         : null,
-      countryId: json['place_country'] ?? 0,
+      countryId: json['place_country'] != ""
+        ? json['place_country']
+        : 0,
       areaId: json['place_area_id'] ?? 0,
       lastUpdated: json['last_updated'] != null
         ? DateTime.parse(json['last_updated'])
@@ -1248,26 +1260,6 @@ class PlaceTypeFilter extends StatelessWidget {
     required this.searchBtnCallback,
   });
 
-  List<String> types = [
-    'Automotive',
-    'Business',
-    'Culture',
-    'Education',
-    'Entertainment and Recreation',
-    'Finance',
-    'Food and Drink',
-    'Geographical Areas',
-    'Government',
-    'Health and Wellness',
-    'Lodging',
-    'Places of Worship',
-    'Services',
-    'Shopping',
-    'Sports',
-    'Transportation',
-  ];
-
-
   bool _handleButtonPressed() {
     _formKey.currentState?.validate();
     String filters = _formKey.currentState?.instantValue.toString() ?? "";
@@ -1295,7 +1287,7 @@ class PlaceTypeFilter extends StatelessWidget {
                 autovalidateMode: AutovalidateMode.onUserInteraction,
                 decoration: const InputDecoration(labelText: 'Select the type of place to get'),
                 name: 'types',
-                options: types
+                options: placeTypes.keys
                     .map(
                       (type) => FormBuilderChipOption(
                         value: type,
