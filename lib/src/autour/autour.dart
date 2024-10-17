@@ -579,12 +579,10 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
   }
 
   void _showPlaceDetails(BuildContext context, int index) async {
-    List<String> weekdayDesc = _placesShown[index].currentOpeningHours?.weekdayDescriptions ?? [];
-
     await showDialog<void>(
       context: context,
       builder: (BuildContext context) {
-        return PlaceDetails(weekdayDesc: weekdayDesc);
+        return PlaceDetails(openingHours: _placesShown[index].currentOpeningHours);
       }
     );
   }
@@ -595,7 +593,6 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
       builder: (BuildContext context) {
         return PlaceTypeFilter(
           searchBtnCallback: (today, filters) async {
-            print("DEBUG: (_showPlaceTypeFilters)");
             List<Place> places = await _searchNearby(today, filters);
             setState(() {
               print("DEBUG: searchNearby has returned, setting places, ${places.length}");
@@ -759,107 +756,97 @@ class PlaceListItem extends StatelessWidget {
     // Get today's index
     _todayIdx = dayNamesIndex[_getDayName()] ?? -1;
 
-    // In the 'openingHours' 'day' starts at 0 for sunday but in the
-    // 'weekdayDescritions' the array starts at monday...
-    final String? currentOpeningHours =
-            placeData.currentOpeningHours?.weekdayDescriptions[(_todayIdx-1) % 7];
-
     final open = placeData.isOpen();
     final IconData isOpenIcon = open ? Icons.check_circle : Icons.cancel;
     final Color isOpenColor = placeData.isOpen() ? Colors.green : Colors.red;
 
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
-      clipBehavior: Clip.antiAliasWithSaveLayer,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.all(15),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                // Spacing between the image and the text
-                Container(width: 20),
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 7.0),
+      child: Card(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        elevation: 4,
+        clipBehavior: Clip.antiAliasWithSaveLayer,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.all(15),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  // Spacing between the image and the text
+                  Container(width: 20),
 
-                // Take the rest of the space
-                Expanded(
-                  child: Column(
+                  // Take the rest of the space
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Container(height: 10),
+                        RichText(
+                          text: TextSpan(
+                            children: [
+                              WidgetSpan(
+                                child: Icon(isOpenIcon, size: 14, color: isOpenColor),
+                              ),
+                              TextSpan(
+                                text: "  " + placeData.displayName,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(height: 5),
+                        Text(
+                          "     " + placeData.primaryType,
+                          style: TextStyle(
+                            color: Colors.grey[500],
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Container(height: 5),
-                      Text(
-                        placeData.displayName,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Container(height: 5),
-                      RichText(
-                        text: TextSpan(
-                          children: [
-                            TextSpan(
-                              text: "  ",
-                            ),
-                            WidgetSpan(
-                              child: Icon(isOpenIcon, size: 14, color: isOpenColor),
-                            ),
-                            TextSpan(
-                              text: " " + (currentOpeningHours ?? "No hours available"),
-                              style: TextStyle(
-                                color: Colors.black,
-                              ),
-                            ),
-                          ],
-                        ),
+                      IconButton(
+                        iconSize: 38,
+                        icon: const Icon(Icons.assistant_navigation),
+                        onPressed: () {
+                          _openInMaps(placeData.displayName,
+                              placeData.location.lat,
+                              placeData.location.lng
+                          );
+                        },
+                        padding: EdgeInsets.zero,
                       ),
                       Container(height: 5),
                       Text(
-                        "  " + placeData.primaryType,
+                        _computeDistance(placeData.location.lat,
+                            placeData.location.lng),
                         style: TextStyle(
-                          color: Colors.grey[500],
-                          fontStyle: FontStyle.italic,
+                          fontSize: 12,
                         ),
+                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),
-                ),
 
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    IconButton(
-                      iconSize: 44,
-                      icon: const Icon(Icons.assistant_navigation),
-                      onPressed: () {
-                        _openInMaps(placeData.displayName,
-                            placeData.location.lat,
-                            placeData.location.lng
-                        );
-                      },
-                      padding: EdgeInsets.zero,
-                    ),
-                    Container(height: 5),
-                    Text(
-                      _computeDistance(placeData.location.lat,
-                          placeData.location.lng),
-                      style: TextStyle(
-                        fontSize: 12,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+    ),
+          );
 
   }
 }
@@ -907,7 +894,7 @@ class Place {
       currentOpeningHours: (json['place_current_opening_hours'] != "null"
         && json['place_current_opening_hours'] != "\"\""
         && json['place_current_opening_hours'] != null)
-        ? OpeningHours.fromJson(jsonDecode(json['place_current_opening_hours']))
+        ? OpeningHours.parseOverpassStr(json['place_current_opening_hours'])
         : null,
       countryId: json['place_country'] != ""
         ? json['place_country']
@@ -973,12 +960,10 @@ class Location {
 class OpeningHours {
   final bool openNow;
   final List<Period> periods;
-  final List<String> weekdayDescriptions;
 
   OpeningHours({
     required this.openNow,
     required this.periods,
-    required this.weekdayDescriptions,
   });
 
   factory OpeningHours.fromJson(Map<String, dynamic> json) {
@@ -986,7 +971,6 @@ class OpeningHours {
     return OpeningHours(
       openNow: json['openNow'],
       periods: periodsJson.map((period) => Period.fromJson(period)).toList(),
-      weekdayDescriptions: List<String>.from(json['weekdayDescriptions']),
     );
   }
 
@@ -994,8 +978,95 @@ class OpeningHours {
     return {
       'openNow': openNow,
       'periods': periods.map((period) => period.toJson()).toList(),
-      'weekdayDescriptions': weekdayDescriptions
     };
+  }
+
+  /// Parse a string of opening hours as returned by Overpass API.
+  /// i.e. 'Mo-Th 10:30-22:30; Fr-Sa 10:30-23:00; Su 10:30-22:30'
+  static OpeningHours parseOverpassStr(String input) {
+    // Day abbreviations to day number mapping
+    const dayMap = {
+      'Mo': 1,
+      'Tu': 2,
+      'We': 3,
+      'Th': 4,
+      'Fr': 5,
+      'Sa': 6,
+      'Su': 7
+    };
+
+    final List<Period> periods = [];
+    final List<String> weekdayDescriptions = input.split(';').map((s) =>
+        s.trim()).toList();
+
+    for (var description in weekdayDescriptions) {
+      // Split day range and time range
+      final dayAndTime = description.split(' ');
+
+      // If there's no time part or it's a non-time value, skip this entry
+      if (dayAndTime.length < 2 || !_isValidTimeRange(dayAndTime[1])) {
+        continue;
+      }
+
+      final days = dayAndTime[0].split('-');
+      final timeRange = dayAndTime[1];
+
+      // Parse the time range (open-close)
+      final times = timeRange.split('-');
+      final openTime = _parseTime(times[0]);
+      final closeTime = _parseTime(times[1]);
+
+      // Ensure times are valid before proceeding
+      if (openTime == null || closeTime == null) {
+        continue;
+      }
+
+      // Get day numbers based on abbreviations
+      final startDay = dayMap[days[0]];
+      final endDay = days.length > 1 ? dayMap[days[1]] : startDay;
+
+      if (startDay != null && endDay != null) {
+        // Create Period objects for each day in the range
+        for (var day = startDay!; day <= endDay!; day++) {
+          periods.add(
+            Period(
+              open: Hour(day: day, hour: openTime.hour, minute: openTime.minute),
+              close: Hour(day: day, hour: closeTime.hour, minute: closeTime.minute),
+            ),
+          );
+        }
+      }
+    }
+
+    // Assuming `openNow` isn't available in the input, set it to false for now
+    return OpeningHours(
+      openNow: false,
+      periods: periods,
+    );
+  }
+
+  // Helper method to check if the time range is valid
+  static bool _isValidTimeRange(String timeRange) {
+    final timeRegex = RegExp(r'^\d{2}:\d{2}-\d{2}:\d{2}$');
+    return timeRegex.hasMatch(timeRange);
+  }
+  
+  // Helper to parse time in HH:mm format
+  static DateTime? _parseTime(String timeStr) {
+    // Regular expression to match a valid time format like "HH:mm"
+    final timeRegex = RegExp(r'^\d{2}:\d{2}$');
+
+    // Check if the string is a valid time
+    if (timeRegex.hasMatch(timeStr)) {
+      try {
+        return DateFormat.Hm().parse(timeStr);
+      } catch (e) {
+        print("Error parsing time: $timeStr");
+        return null;
+      }
+    }
+
+    return null;
   }
 }
 
@@ -1020,6 +1091,25 @@ class Period {
       'open': open.toJson(),
       'close': close.toJson()
     };
+  }
+
+  @override
+  String toString() {
+    // List of day names corresponding to the day numbers
+    const dayNames = [
+      'Invalid',  // 0 index is not used, days start from 1
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+
+    // Format opening and closing times
+    return '${dayNames[open.day]}: ${open.hour}:${open.minute.toString().padLeft(2, '0')} - '
+           '${close.hour}:${close.minute.toString().padLeft(2, '0')}';
   }
 }
 
@@ -1181,23 +1271,24 @@ class AutourFilters extends StatelessWidget {
 }
 
 class PlaceDetails extends StatelessWidget {
-  final List<String> weekdayDesc;
+  final OpeningHours? openingHours;
 
   PlaceDetails({
-    required this.weekdayDesc,
+    required this.openingHours,
   });
 
-  Widget _showDesc(String day) {
+  Widget _showDesc(Period period) {
+    final periodStr = period.toString();
     int dayLength = 10;
-    int splitIndex = day.indexOf(':');
+    int splitIndex = periodStr.indexOf(':');
 
-    // Craft day of week text with padding to align the time that comes next
-    String dayPart = day.substring(0, splitIndex).trim();
+    // Craft opening hours text with padding to align the time that comes next
+    String dayPart = periodStr.substring(0, splitIndex).trim();
     String padding = List.filled(dayLength - dayPart.length, ' ').join();
     String dayPartFormatted = dayPart + padding;
 
     // Craft hours text
-    String timePart = day.substring(splitIndex + 1).trim();
+    String timePart = periodStr.substring(splitIndex + 1).trim();
     String timePartFormatted = "";
     List<String> hours = timePart.split(',');
     bool first = true;
@@ -1214,6 +1305,7 @@ class PlaceDetails extends StatelessWidget {
       children: [
         Expanded(
           child: RichText(
+
             text: TextSpan(
               // Main text style
               style: TextStyle(
@@ -1233,6 +1325,7 @@ class PlaceDetails extends StatelessWidget {
                 ),
               ],
             ),
+
           ),
         ),
       ],
@@ -1246,7 +1339,9 @@ class PlaceDetails extends StatelessWidget {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: weekdayDesc.map((day) => _showDesc(day)).toList(),
+        children: openingHours != null
+          ? openingHours!.periods.map((period) => _showDesc(period)).toList()
+          : [],
       ),
     );
   }
