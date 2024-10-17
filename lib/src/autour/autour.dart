@@ -1355,6 +1355,10 @@ class PlaceTypeFilter extends StatelessWidget {
     required this.searchBtnCallback,
   });
 
+  String _getDayName() {
+    return DateFormat('EEEE').format(DateTime.now());
+  }
+
   bool _handleButtonPressed() {
     _formKey.currentState?.validate();
     String filters = _formKey.currentState?.instantValue.toString() ?? "";
@@ -1364,7 +1368,7 @@ class PlaceTypeFilter extends StatelessWidget {
       return false;
     }
 
-    searchBtnCallback("Wednesday", filters ?? "{}");
+    searchBtnCallback(_getDayName(), filters ?? "{}");
     return true;
   }
 
