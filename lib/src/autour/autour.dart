@@ -289,10 +289,40 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
     //  places = _places;
     //}
 
+    // Compute distance from current position for all places
+    for (final place in places) {
+      place.distance = _computeDistance(place.location.lat, place.location.lng);
+      place.distanceStr = _distanceToStr(place.distance);
+    }
+
+    // Sort places by distance from current position
+    places.sort((a, b) => a.distance.compareTo(b.distance));
+
     _searchOngoing = false;
     setState(() {});
 
     return places;
+  }
+
+  int _computeDistance(double lat, double lng) {
+    return Geolocator.distanceBetween(
+        _lastKnownCoords.lat,
+        _lastKnownCoords.lng,
+        lat, lng
+    ).round();
+  }
+
+  String _distanceToStr(int distance) {
+      String distanceStr = "";
+
+      if (distance >= 1000) {
+          distanceStr = "${(distance / 1000).toStringAsFixed(1)} km";
+      }
+      else {
+          distanceStr = "${distance.round()} m";
+      }
+
+      return distanceStr;
   }
 
   /// Call the backend to get the list of places
@@ -689,7 +719,7 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
                     _showPlaceDetails(context, index);
                   },
                   child: Container(
-                    child: PlaceListItem(userPosition: _lastKnownCoords, placeData: _placesShown[index]),
+                    child: PlaceListItem(placeData: _placesShown[index]),
                   ),
                 );
               },
@@ -713,33 +743,15 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
 }
 
 class PlaceListItem extends StatelessWidget {
-  final Location userPosition;
   final Place placeData;
   int _todayIdx = 0;
 
   PlaceListItem({
-    required this.userPosition,
     required this.placeData,
   });
 
   String _getDayName() {
     return DateFormat('EEEE').format(DateTime.now());
-  }
-
-  String _computeDistance(double lat, double lng) {
-      double distance = 0.0;
-      String distanceStr = "";
-
-      distance = Geolocator.distanceBetween(userPosition.lat, userPosition.lng,
-          lat, lng);
-      if (distance >= 1000) {
-          distanceStr = "${(distance / 1000).toStringAsFixed(1)} km";
-      }
-      else {
-          distanceStr = "${distance.round()} m";
-      }
-
-      return distanceStr;
   }
 
   Future<void> _openInMaps(String name, double lat, double lon) async {
@@ -818,7 +830,7 @@ class PlaceListItem extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       IconButton(
-                        iconSize: 38,
+                        iconSize: 40,
                         icon: const Icon(Icons.assistant_navigation),
                         onPressed: () {
                           _openInMaps(placeData.displayName,
@@ -830,8 +842,7 @@ class PlaceListItem extends StatelessWidget {
                       ),
                       Container(height: 5),
                       Text(
-                        _computeDistance(placeData.location.lat,
-                            placeData.location.lng),
+                        placeData.distanceStr,
                         style: TextStyle(
                           fontSize: 12,
                         ),
@@ -861,8 +872,10 @@ class Place {
   final int countryId;
   final int areaId;
   final DateTime lastUpdated;
+  int distance = 0;
+  String distanceStr = "";
 
-  const Place({
+  Place({
     required this.formattedAddress,
     required this.googleMapsUri,
     required this.primaryType,
