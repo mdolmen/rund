@@ -757,10 +757,21 @@ class PlaceListItem extends StatelessWidget {
   Future<void> _openInMaps(String name, double lat, double lon) async {
     final availableMaps = await MapLauncher.installedMaps;
 
-    await availableMaps.first.showMarker(
-      coords: Coords(lat, lon),
-      title: name,
-    );
+    if ((await MapLauncher.isMapAvailable(MapType.google)) == true) {
+      // Use Google Maps if available
+      await MapLauncher.showMarker(
+        mapType: MapType.google,
+        coords: Coords(lat, lon),
+        title: name,
+      );
+    }
+    else {
+      // Use the first maps app found on the device
+      await availableMaps.first.showMarker(
+        coords: Coords(lat, lon),
+        title: name,
+      );
+    }
   }
 
   @override
