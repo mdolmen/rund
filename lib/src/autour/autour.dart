@@ -765,12 +765,24 @@ class PlaceListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    IconData isOpenIcon;
+    Color isOpenColor;
+
     // Get today's index
     _todayIdx = dayNamesIndex[_getDayName()] ?? -1;
 
-    final open = placeData.isOpen();
-    final IconData isOpenIcon = open ? Icons.check_circle : Icons.cancel;
-    final Color isOpenColor = placeData.isOpen() ? Colors.green : Colors.red;
+    if (placeData.currentOpeningHours == null
+        || placeData.currentOpeningHours?.periods.length == 0) {
+      // Open indicator when opening hours are unknown
+      isOpenIcon = Icons.block;
+      isOpenColor = Colors.grey;
+    }
+    else {
+      // Open state indicator when opening hours are known
+      final open = placeData.isOpen();
+      isOpenIcon = open ? Icons.check_circle : Icons.cancel;
+      isOpenColor = placeData.isOpen() ? Colors.green : Colors.red;
+    }
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 7.0),
