@@ -853,7 +853,7 @@ class PlaceListItem extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       IconButton(
-                        iconSize: 40,
+                        iconSize: 44,
                         icon: const Icon(Icons.assistant_navigation),
                         onPressed: () {
                           _openInMaps(placeData.displayName,
@@ -865,7 +865,7 @@ class PlaceListItem extends StatelessWidget {
                       ),
                       Container(height: 5),
                       Text(
-                        placeData.distanceStr,
+                        " " + placeData.distanceStr,
                         style: TextStyle(
                           fontSize: 12,
                         ),
