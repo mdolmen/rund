@@ -1377,7 +1377,7 @@ class PlaceDetails extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: openingHours != null
           ? openingHours!.periods.map((period) => _showDesc(period)).toList()
-          : [],
+          : [Text("No known opening hours")],
       ),
     );
   }
