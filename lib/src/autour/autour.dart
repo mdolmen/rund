@@ -81,7 +81,6 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
 
   bool _applyFilters(String today, String filters, Place place) {
     Map<String, dynamic> filtersJson = _formatStrToJson(filters, true);
-    print(filtersJson);
     bool f_open_on = true;
     bool f_open_before = true;
     bool f_open_after = true;
@@ -92,7 +91,6 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
     DateTime now = DateTime.now();
     int currentTime = now.hour * 60 + now.minute;
     List<Period> periods = place.currentOpeningHours?.periods ?? [];
-    print(periods);
 
     // Get today short version
     String todayShort = "";
@@ -239,17 +237,17 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
       }
     }
 
-    print("DEBUG: f_open_on: $f_open_on, f_open_today: $f_open_today, f_open_now: $f_open_now, f_open_before: $f_open_before, f_open_after: $f_open_after;\n");
-    print("\n");
+    //print("DEBUG: f_open_on: $f_open_on, f_open_today: $f_open_today, f_open_now: $f_open_now, f_open_before: $f_open_before, f_open_after: $f_open_after;\n");
+    //print("\n");
     return f_open_on && f_open_today && f_open_now && f_open_before && f_open_after;
   }
 
   Future<List<Place>> _searchNearby(String today, String filters) async {
     print("[+] Getting places around...");
+    print("DEBUG: (_getPlaces) User id = $USER_ID");
     Map<String, dynamic> filtersJson = _formatStrToJson(filters, false);
 
     String type = filtersJson["types"] ?? "";
-    print("DEBUG: (_searchNearby) type = $type");
 
     // Get current position
     if (_lastKnownCoords.lat == -360 && _lastKnownCoords.lng == -360) {
@@ -334,7 +332,6 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
     }
 
     List<String> subtypes = placeTypes[type] ?? [];
-    print("DEBUG: (_getPlaces) $subtypes");
 
     // TODO:
     //  - pass positionHasChanged in parameter
@@ -395,9 +392,8 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
       subtypes
     );
 
-    // Parse to Place objects
+    // Parse json to Place objects
     places = placesJson.map((json) => Place.fromJson(json)).toList();
-    print("DEBUG: (_getPlaces) nb places: ${places.length}");
 
     return places;
   }
@@ -405,15 +401,10 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
   List<Place> _filterPlaces(String today, String filters) {
     List<Place> filteredPlaces = [];
 
-    print("DEBUG: (_filterPlaces) today = $today, filters = $filters");
-    print("DEBUG: (_filterPlaces) len _places = ${_places.length}");
-
     for (final place in _places) {
       if (_applyFilters(today, filters, place) == true)
         filteredPlaces.add(place);
     }
-
-    print("DEBUG: (_filterPlaces) len fp = ${filteredPlaces.length}");
 
     return filteredPlaces;
   }
@@ -525,7 +516,6 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
 
     print(jsonString);
     Map<String, dynamic> filtersJson = json.decode(jsonString);
-    print("DEBUG: $jsonString");
 
     return filtersJson;
   }
