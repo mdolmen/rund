@@ -3,6 +3,28 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'autour/autour.dart';
+import 'autour/settings.dart';
+
+class Destination {
+  const Destination(this.label, this.icon, this.selectedIcon);
+
+  final String label;
+  final Widget icon;
+  final Widget selectedIcon;
+}
+
+const List<Destination> destinations = <Destination>[
+  Destination(
+      'Search',
+      Icon(Icons.blur_circular_outlined),
+      Icon(Icons.blur_circular),
+  ),
+  Destination(
+      'Settings',
+      Icon(Icons.settings_outlined),
+      Icon(Icons.settings),
+  ),
+];
 
 /// The Widget that configures your application.
 class MyApp extends StatelessWidget {
@@ -67,12 +89,39 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
 
+  int screenIndex = 0;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(),
 
-      body: AutourScreen(),
+      body: IndexedStack(
+        index: screenIndex,
+        children: const [
+            AutourScreen(),
+            SettingsScreen(),
+        ],
+      ),
+
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: screenIndex,
+        onDestinationSelected: (int index) {
+          setState(() {
+            screenIndex = index;
+          });
+        },
+        destinations: destinations.map(
+          (Destination destination) {
+            return NavigationDestination(
+              label: destination.label,
+              icon: destination.icon,
+              selectedIcon: destination.selectedIcon,
+              tooltip: destination.label,
+            );
+          },
+        ).toList(),
+      ),
     );
   }
 }
