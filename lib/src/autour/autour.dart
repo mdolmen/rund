@@ -14,9 +14,7 @@ import 'package:map_launcher/map_launcher.dart';
 import 'database_helper.dart';
 //import 'place_types_gapi.dart';
 import 'place_types_oapi.dart';
-
-const String BACKEND_URL = "http://vps-433a4dd6.vps.ovh.net:8080";
-//const String BACKEND_URL = "http://127.0.0.1:8080";
+import 'globals.dart';
 
 const Map<String, int> dayNamesIndex = {
   'Sunday': 0,
@@ -64,6 +62,7 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
     super.initState();
     _pageViewController = PageController();
     _tabController = TabController(length: 3, vsync: this);
+    setUserIdGlobal();
   }
 
   @override
@@ -360,6 +359,7 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
           },
         },
         'placesType': type,
+        'userId': USER_ID,
       }),
     );
 

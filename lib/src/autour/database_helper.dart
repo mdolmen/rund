@@ -47,6 +47,30 @@ class DatabaseHelper {
         last_updated DATE
     );
     ''');
+
+    await db.execute('''
+    CREATE TABLE IF NOT EXISTS metadata (
+        meta_user_id TEXT UNIQUE
+    );
+    ''');
+
+    String userId = _generateRandomAsciiString(16);
+
+    await db.insert(
+      'metadata',
+      {'meta_user_id': userId}
+    );
+
+    // TODO: ping the backend to receive the free credits?
+  }
+
+  String _generateRandomAsciiString(int length) {
+    const String chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    final Random random = Random();
+
+    return String.fromCharCodes(
+      List.generate(length, (index) => chars.codeUnitAt(random.nextInt(chars.length)))
+    );
   }
 
   Future<int> insertPlace(Map<String, dynamic> place) async {
@@ -174,5 +198,22 @@ class DatabaseHelper {
       'latitudeOffset': deltaLatitude,
       'longitudeOffset': deltaLongitude,
     };
+  }
+
+  Future<String> getUserId() async {
+    Database db = await database;
+    String userId = "";
+
+    final List<Map<String, dynamic>> result = await db.query(
+      'metadata',
+      columns: ['meta_user_id'],
+      limit: 1,
+    );
+
+    if (result.isNotEmpty) {
+      userId = result.first['meta_user_id'] as String;
+    }
+
+    return userId;
   }
 }
