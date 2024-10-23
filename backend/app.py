@@ -20,14 +20,24 @@ class VerifyPurchaseRequest(BaseModel):
     productId: str
     userId: str
 
+class UserIdRequest(BaseModel):
+    userId: str
+
 @app.get("/")
 async def index():
     return {"message": "ping ok"}
 
 @app.post("/get-places")
 async def get_places(params: AutourRequest):
-    new_places = await places.get_places(params)
+    if places.credits_available(params.userId):
+        new_places = await places.get_places(params)
+        places.dec_credits(params.userId)
+    else:
+        print("[-] Not enough credits...")
+        new_places = []
 
+    # TODO: return a more complex object with an error in case not enough
+    # credits
     return new_places
 
 @app.post("/get-places-dev")

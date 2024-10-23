@@ -82,6 +82,7 @@ class AutourRequest(BaseModel):
     rankPreference: str
     locationRestriction: LocationRestriction
     placesType: str
+    userId: str
 
 class Places:
     def __init__(self):
