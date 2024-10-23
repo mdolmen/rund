@@ -775,7 +775,7 @@ class PlaceListItem extends StatelessWidget {
     if (placeData.currentOpeningHours == null
         || placeData.currentOpeningHours?.periods.length == 0) {
       // Open indicator when opening hours are unknown
-      isOpenIcon = Icons.block;
+      isOpenIcon = Icons.question_mark;
       isOpenColor = Colors.grey;
     }
     else {

@@ -207,6 +207,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
       );
+
+      stack.add(
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Card(
+            child: ListTile(
+              title: Text("Info"),
+              subtitle: Text("The data source is OpenStreetMap which for now lacks information on some places regarding opening hours."),
+            ),
+          )
+        ),
+      );
     }
     else {
       stack.add(
