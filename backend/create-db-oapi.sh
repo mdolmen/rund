@@ -16,6 +16,20 @@ DB_PORT="5432"
 SCHEMA_SQL="
 CREATE SCHEMA IF NOT EXISTS autour;
 
+CREATE TABLE IF NOT EXISTS purchases (
+  purchase_id SERIAL PRIMARY KEY,
+  purchase_user_id CHAR(16) NOT NULL,
+  purchase_credits FLOAT NOT NULL,
+  purchase_date DATE
+);
+
+CREATE TABLE IF NOT EXISTS credits (
+  cr_id SERIAL PRIMARY KEY,
+  cr_user_id CHAR(16) NOT NULL,
+  cr_credits INT NOT NULL,
+  UNIQUE (cr_user_id)
+);
+
 CREATE TABLE IF NOT EXISTS countries (
   country_id SERIAL PRIMARY KEY,
   country_iso CHAR(2) NOT NULL,

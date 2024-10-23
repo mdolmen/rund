@@ -387,3 +387,57 @@ class Database:
         """
 
         self.execute_request_noresult(request, (covered_bitmap, area_id))
+
+    def insert_purchase(self, user_id, credits):
+        request = """
+        INSERT INTO purchases (
+            purchase_user_id,
+            purchase_credits,
+            purchase_date
+        )
+        VALUES (%s, %s, NOW());
+        """
+        self.execute_request_noresult(request, (user_id, credits))
+
+    def insert_credits(self, user_id, credits):
+        request = """
+        INSERT INTO credits (
+            cr_user_id,
+            cr_credits
+        )
+        VALUES (%s, %s)
+        ON CONFLICT (cr_user_id)
+        DO UPDATE SET cr_credits = credits.cr_credits + EXCLUDED.cr_credits;
+        """
+        self.execute_request_noresult(request, (user_id, credits))
+
+    def get_credits(self, user_id):
+        request = """
+        SELECT cr_credits
+        FROM credits
+        WHERE cr_user_id = %s;
+        """
+        credits = 0
+
+        result = self.execute_request(request, (user_id,))
+
+        if result:
+            credits = result[0][0]
+
+        return credits
+
+    def inc_credits(self, user_id):
+        request = """
+        UPDATE credits
+        SET cr_credits = cr_credits + 1
+        WHERE cr_user_id = %s;
+        """
+        self.execute_request_noresult(request, (user_id,))
+
+    def dec_credits(self, user_id):
+        request = """
+        UPDATE credits
+        SET cr_credits = cr_credits - 1
+        WHERE cr_user_id = %s;
+        """
+        self.execute_request_noresult(request, (user_id,))

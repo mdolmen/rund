@@ -205,6 +205,24 @@ class Places:
     def create_subzones_and_areas(self, zone, band):
         return self.db.create_subzones_and_areas(zone, band)
 
+    def insert_purchase(self, user_id, amount):
+        return self.db.insert_purchase(user_id, amount)
+
+    def insert_credits(self, user_id, credits):
+        return self.db.insert_credits(user_id, credits)
+
+    def get_credits(self, user_id):
+        return self.db.get_credits(user_id)
+
+    def inc_credits(self, user_id):
+        return self.db.inc_credits(user_id)
+
+    def dec_credits(self, user_id):
+        return self.db.dec_credits(user_id)
+
+    def credits_available(self, user_id):
+        return self.get_credits(user_id) > 0
+
     async def get_places_in_area(self, params, places_type, point_info, adjacent_lon,
                                  adjacent_lat):
         """

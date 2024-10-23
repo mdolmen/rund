@@ -6,12 +6,19 @@ from places import Places, RequestBody, AutourRequest, Location
 from fastapi import FastAPI, Body, HTTPException
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import Response
+from pydantic import BaseModel
 
 API_KEY_GEOCODE = "";
 
 places = Places()
 
 app = FastAPI()
+
+class VerifyPurchaseRequest(BaseModel):
+    verificationData: str
+    platform: str
+    productId: str
+    userId: str
 
 @app.get("/")
 async def index():
@@ -46,3 +53,82 @@ async def reverse_geocode(location: Location):
         return response.json()
     else:
         raise HTTPException(status_code=response.status_code, detail="Failed to reverse geocode")
+
+@app.post("/get-credits")
+async def get_credits(request: UserIdRequest):
+    return {"credits": places.get_credits(request.userId)}
+
+@app.post("/verify-purchase")
+async def verify_purchase(purchase: VerifyPurchaseRequest):
+    """
+    Endpoint to verify iOS in-app purchase using App Store Server API
+    """
+    # Apple's sandbox or production URL
+    APPLE_PRODUCTION_URL = "https://buy.itunes.apple.com/verifyReceipt"
+    APPLE_SANDBOX_URL = "https://sandbox.itunes.apple.com/verifyReceipt"
+
+    # DEBUG
+    user_credits = handle_payment_success('test.credits.20', purchase.userId)
+
+    #payload = {
+    #    'receipt-data': purchase.verificationData,
+    #    'password': 'YOUR_SHARED_SECRET' # TODO
+    #}
+
+    #try:
+    #    response = requests.post(APPLE_PRODUCTION_URL, json=payload)
+    #    result = response.json()
+
+    #    # If status is 21007, the receipt is from the sandbox environment, resend to the sandbox server
+    #    if result.get("status") == 21007:
+    #        response = requests.post(APPLE_SANDBOX_URL, json=payload)
+    #        result = response.json()
+
+    #    # Handle the response
+    #    if result.get("status") == 0:
+    #        # Successful verification
+    #        receipt = result.get('receipt')
+    #        product_receipts = [item for item in receipt['in_app'] if
+    #                            item['productId'] == purchase.productId]
+    #        if not product_receipts:
+    #            raise HTTPException(status_code=400,
+    #                                detail="[-] Product not found in receipt.")
+
+    #        user_credits = handle_payment_success(
+    #            product_receipts['in_app'][0]['productId'],
+    #            purchase.userId
+    #        )
+    #        data = json.dumps({"status": "success", "credits_available": user_credits})
+    #        return Response(content=data, media_type="application/json")
+
+    #    else:
+    #        # Verification failed
+    #        raise HTTPException(status_code=400,
+    #                            detail=f"Verification failed with status: {result.get('status')}")
+
+    #except Exception as e:
+    #    raise HTTPException(status_code=500, detail=str(e))
+
+    data = json.dumps({"status": "success", "credits_available": user_credits})
+
+    return Response(content=data, media_type="application/json")
+
+def handle_payment_success(product_id, user_id):
+    print("DEBUG: handle_payment_success")
+    print(f"DEBUG: user id = {user_id}")
+    quantity = {
+        'test.credits.20': 20,
+        'test.credits.50': 50,
+        'test.credits.200': 200
+    }
+    print(f"DEBUG: product id = {product_id}")
+    credits = quantity[product_id]
+
+    places.insert_purchase(user_id, credits)
+
+    places.insert_credits(user_id, credits)
+
+    user_credits = places.get_credits(user_id)
+    print(f"user credits = {user_credits}")
+
+    return user_credits
