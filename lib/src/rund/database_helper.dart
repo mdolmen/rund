@@ -18,7 +18,7 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDatabase() async {
-    String path = join(await getDatabasesPath(), 'autour.db');
+    String path = join(await getDatabasesPath(), 'rund.sqlite');
     //print("[+] DEBUG, db path = $path");
 
     // Delete the existing database

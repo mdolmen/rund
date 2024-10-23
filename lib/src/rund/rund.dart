@@ -36,14 +36,14 @@ const Map<String, int> dayNamesShortIndex = {
   'S': 6,
 };
 
-class AutourScreen extends StatefulWidget {
-  const AutourScreen({super.key});
+class RundScreen extends StatefulWidget {
+  const RundScreen({super.key});
 
   @override
-  State<AutourScreen> createState() => _AutourScreen();
+  State<RundScreen> createState() => _RundScreen();
 }
 
-class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
+class _RundScreen extends State<RundScreen> with TickerProviderStateMixin {
   final dbHelper = DatabaseHelper();
 
   late PageController _pageViewController;
@@ -524,7 +524,7 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
     await showDialog<void>(
       context: context,
       builder: (BuildContext context) {
-        return AutourFilters(
+        return RundFilters(
           searchBtnCallback: (today, filters) async {
             //List<Place> places = await _searchNearby(today, filters);
             List<Place> places = await _filterPlaces(today, filters);
@@ -664,7 +664,7 @@ class _AutourScreen extends State<AutourScreen> with TickerProviderStateMixin {
                   alignment: Alignment.center,
                   child: ElevatedButton(
                     onPressed: () => _showPlaceTypeFilter(context),
-                    child: Text('Autour'),
+                    child: Text('Nearby'),
                   ),
                 ),
               ),
@@ -1167,11 +1167,11 @@ class Hour {
   }
 }
 
-class AutourFilters extends StatelessWidget {
+class RundFilters extends StatelessWidget {
   final _formKey = GlobalKey<FormBuilderState>();
   final Function(String, String) searchBtnCallback;
 
-  AutourFilters({
+  RundFilters({
     required this.searchBtnCallback,
   });
 

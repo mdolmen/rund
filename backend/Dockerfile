@@ -1,8 +1,8 @@
 FROM python:3.12-bookworm
 
-WORKDIR /autour
+WORKDIR /rund
 
-COPY . /autour
+COPY . /rund
 
 RUN apt update
 RUN apt install -y libhdf5-dev postgresql postgresql-client

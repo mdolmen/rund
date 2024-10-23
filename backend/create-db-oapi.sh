@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define variables
-DB_NAME="autour"
+DB_NAME="rund"
 DB_USER="postgres"
 DB_PASSWORD="mypassword"
 #DB_HOST="localhost"
@@ -14,7 +14,7 @@ DB_PORT="5432"
 
 # SQL script to create schema and tables
 SCHEMA_SQL="
-CREATE SCHEMA IF NOT EXISTS autour;
+CREATE SCHEMA IF NOT EXISTS rund;
 
 CREATE TABLE IF NOT EXISTS purchases (
   purchase_id SERIAL PRIMARY KEY,

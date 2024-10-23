@@ -12,7 +12,7 @@ AREA_HEIGHT = 1 / utm.SUBZONE_SPLIT_Y
 class Database:
     def __init__(self):
         conn_params = {
-            'dbname': 'autour',
+            'dbname': 'rund',
             'user': 'postgres',
             'password': 'mypassword',
             'host': 'postgres',

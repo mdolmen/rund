@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
-import 'autour/autour.dart';
-import 'autour/settings.dart';
+import 'rund/rund.dart';
+import 'rund/settings.dart';
 
 class Destination {
   const Destination(this.label, this.icon, this.selectedIcon);
@@ -99,7 +99,7 @@ class _MainScreenState extends State<MainScreen> {
       body: IndexedStack(
         index: screenIndex,
         children: const [
-            AutourScreen(),
+            RundScreen(),
             SettingsScreen(),
         ],
       ),

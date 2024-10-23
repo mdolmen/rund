@@ -1,5 +1,5 @@
-name: autour
-description: "A new Flutter project."
+name: rund
+description: "Get places around you."
 
 # Prevent accidental publishing to pub.dev.
 publish_to: 'none'
