@@ -13,6 +13,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_form_builder: ^9.3.0
+  flutter_launcher_icons: ^0.14.1
   flutter_localizations:
     sdk: flutter
   form_builder_validators: ^11.0.0
@@ -40,3 +41,8 @@ flutter:
   assets:
     # Add assets from the images directory to the application.
     - assets/images/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/rund_logo.png"
