@@ -70,7 +70,7 @@ class MyApp extends StatelessWidget {
       // preferred ThemeMode (light, dark, or system default) from the
       // SettingsController to display the correct theme.
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
       ),
       //darkTheme: ThemeData.dark(),
 

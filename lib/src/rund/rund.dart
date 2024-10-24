@@ -676,7 +676,7 @@ class _RundScreen extends State<RundScreen> with TickerProviderStateMixin {
                     children: [
                       Switch(
                         value: _online,
-                        activeColor: Colors.blue,
+                        activeColor: Colors.orange,
                         onChanged: (bool value) {
                           setState(() {
                             _online = value;
@@ -687,7 +687,7 @@ class _RundScreen extends State<RundScreen> with TickerProviderStateMixin {
                         _online ? 'Online' : 'Offline',
                         style: TextStyle(
                           fontSize: 12,
-                          color: _online ? Colors.blue : Colors.grey,
+                          color: _online ? Colors.green : Colors.grey,
                         ),
                       ),
                     ],
@@ -722,7 +722,7 @@ class _RundScreen extends State<RundScreen> with TickerProviderStateMixin {
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 16.0),
               child: LoadingAnimationWidget.beat(
-                color: Colors.blue.shade100,
+                color: Colors.orange.shade100,
                 size: 50,
               ),
             ),
