@@ -426,6 +426,19 @@ class Database:
 
         return credits
 
+    def set_trial_credits(self, user_id):
+        request = """
+        INSERT INTO credits (
+            cr_user_id,
+            cr_credits
+        )
+        VALUES (%s, 3)
+        ON CONFLICT (cr_user_id)
+        DO UPDATE SET cr_credits = 0;
+        """
+
+        result = self.execute_request_noresult(request, (user_id,))
+
     def inc_credits(self, user_id):
         request = """
         UPDATE credits

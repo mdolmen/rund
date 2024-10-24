@@ -68,6 +68,11 @@ async def reverse_geocode(location: Location):
 async def get_credits(request: UserIdRequest):
     return {"credits": places.get_credits(request.userId)}
 
+@app.post("/get-trial-credits")
+async def get_trial_credits(request: UserIdRequest):
+    places.set_trial_credits(request.userId)
+    return {"credits": places.get_credits(request.userId)}
+
 @app.post("/verify-purchase")
 async def verify_purchase(purchase: VerifyPurchaseRequest):
     """

@@ -215,6 +215,9 @@ class Places:
     def get_credits(self, user_id):
         return self.db.get_credits(user_id)
 
+    def set_trial_credits(self, user_id):
+        return self.db.set_trial_credits(user_id)
+
     def inc_credits(self, user_id):
         return self.db.inc_credits(user_id)
 

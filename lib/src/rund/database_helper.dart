@@ -3,6 +3,10 @@ import 'package:path/path.dart';
 import 'dart:math';
 import 'dart:convert';
 
+import 'package:http/http.dart' as http;
+
+import 'globals.dart';
+
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
   factory DatabaseHelper() => _instance;
@@ -61,7 +65,8 @@ class DatabaseHelper {
       {'meta_user_id': userId}
     );
 
-    // TODO: ping the backend to receive the free credits?
+    // Ping the backend to receive the trial credits
+    _getTrialCredits();
   }
 
   String _generateRandomAsciiString(int length) {
@@ -215,5 +220,32 @@ class DatabaseHelper {
     }
 
     return userId;
+  }
+
+  /// Send the newly created USER_ID to the backend to receive free credits for
+  /// trial.
+  Future<void> _getTrialCredits() async {
+    final String url = BACKEND_URL + '/get-trial-credits';
+    int credits = 0;
+
+    // Get credits from backend
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode({
+          'userId': USER_ID,
+        }),
+      );
+
+      // Check if the response is successful (status code 200)
+      if (response.statusCode != 200) {
+        print('[-] Failed to load credits. Status code: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('[-] Error occurred while fetching credits: $error');
+    }
   }
 }
