@@ -22,10 +22,12 @@ import 'database_helper.dart';
 // To try without auto-consume on another platform, change `true` to `false` here.
 final bool _kAutoConsume = Platform.isIOS || true;
 
-const String _kCredits20Id = 'test.credits.20';
-const String _kCredits200Id = 'test.credits.200';
+const String _kCredits20Id = 'com.rund.credits.20';
+const String _kCredits50Id = 'com.rund.credits.50';
+const String _kCredits200Id = 'com.rund.credits.200';
 const List<String> _kProductIds = <String>[
   _kCredits20Id,
+  _kCredits50Id,
   _kCredits200Id,
 ];
 

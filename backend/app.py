@@ -81,50 +81,49 @@ async def verify_purchase(purchase: VerifyPurchaseRequest):
     # Apple's sandbox or production URL
     APPLE_PRODUCTION_URL = "https://buy.itunes.apple.com/verifyReceipt"
     APPLE_SANDBOX_URL = "https://sandbox.itunes.apple.com/verifyReceipt"
+    data = {}
 
-    # DEBUG
-    user_credits = handle_payment_success('test.credits.20', purchase.userId)
+    # TEST
+    #user_credits = handle_payment_success('test.credits.20', purchase.userId)
 
-    #payload = {
-    #    'receipt-data': purchase.verificationData,
-    #    'password': 'YOUR_SHARED_SECRET' # TODO
-    #}
+    payload = {
+        'receipt-data': purchase.verificationData,
+        'password': '56a3c58bab1448c384537aa6b017fc93'
+    }
 
-    #try:
-    #    response = requests.post(APPLE_PRODUCTION_URL, json=payload)
-    #    result = response.json()
+    try:
+        response = requests.post(APPLE_PRODUCTION_URL, json=payload)
+        result = response.json()
 
-    #    # If status is 21007, the receipt is from the sandbox environment, resend to the sandbox server
-    #    if result.get("status") == 21007:
-    #        response = requests.post(APPLE_SANDBOX_URL, json=payload)
-    #        result = response.json()
+        # If status is 21007, the receipt is from the sandbox environment,
+        # resend to the sandbox server
+        if result.get("status") == 21007:
+            response = requests.post(APPLE_SANDBOX_URL, json=payload)
+            result = response.json()
 
-    #    # Handle the response
-    #    if result.get("status") == 0:
-    #        # Successful verification
-    #        receipt = result.get('receipt')
-    #        product_receipts = [item for item in receipt['in_app'] if
-    #                            item['productId'] == purchase.productId]
-    #        if not product_receipts:
-    #            raise HTTPException(status_code=400,
-    #                                detail="[-] Product not found in receipt.")
+        # Handle the response
+        if result.get("status") == 0:
+            # Successful verification
+            receipt = result.get('receipt')
+            product_receipts = [item for item in receipt['in_app'] if
+                                item['productId'] == purchase.productId]
+            if not product_receipts:
+                raise HTTPException(status_code=400,
+                                    detail="[-] Product not found in receipt.")
 
-    #        user_credits = handle_payment_success(
-    #            product_receipts['in_app'][0]['productId'],
-    #            purchase.userId
-    #        )
-    #        data = json.dumps({"status": "success", "credits_available": user_credits})
-    #        return Response(content=data, media_type="application/json")
+            user_credits = handle_payment_success(
+                product_receipts['in_app'][0]['productId'],
+                purchase.userId
+            )
+            data = json.dumps({"status": "success", "credits_available": user_credits})
 
-    #    else:
-    #        # Verification failed
-    #        raise HTTPException(status_code=400,
-    #                            detail=f"Verification failed with status: {result.get('status')}")
+        else:
+            # Verification failed
+            raise HTTPException(status_code=400,
+                                detail=f"Verification failed with status: {result.get('status')}")
 
-    #except Exception as e:
-    #    raise HTTPException(status_code=500, detail=str(e))
-
-    data = json.dumps({"status": "success", "credits_available": user_credits})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
     return Response(content=data, media_type="application/json")
 
@@ -132,9 +131,9 @@ def handle_payment_success(product_id, user_id):
     print("DEBUG: handle_payment_success")
     print(f"DEBUG: user id = {user_id}")
     quantity = {
-        'test.credits.20': 20,
-        'test.credits.50': 50,
-        'test.credits.200': 200
+        'com.rund.credits.20': 20,
+        'com.rund.credits.50': 50,
+        'com.rund.credits.200': 200
     }
     print(f"DEBUG: product id = {product_id}")
     credits = quantity[product_id]
