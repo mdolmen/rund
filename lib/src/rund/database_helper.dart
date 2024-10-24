@@ -26,7 +26,7 @@ class DatabaseHelper {
     //print("[+] DEBUG, db path = $path");
 
     // Delete the existing database
-    await deleteDatabase(path); // TEST
+    //await deleteDatabase(path); // TEST
 
     return await openDatabase(
       path,
