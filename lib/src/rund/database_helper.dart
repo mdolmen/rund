@@ -66,7 +66,7 @@ class DatabaseHelper {
     );
 
     // Ping the backend to receive the trial credits
-    _getTrialCredits();
+    _getTrialCredits(userId);
   }
 
   String _generateRandomAsciiString(int length) {
@@ -224,7 +224,7 @@ class DatabaseHelper {
 
   /// Send the newly created USER_ID to the backend to receive free credits for
   /// trial.
-  Future<void> _getTrialCredits() async {
+  Future<void> _getTrialCredits(String userId) async {
     final String url = BACKEND_URL + '/get-trial-credits';
     int credits = 0;
 
@@ -236,7 +236,7 @@ class DatabaseHelper {
           'Content-Type': 'application/json; charset=UTF-8',
         },
         body: jsonEncode({
-          'userId': USER_ID,
+          'userId': userId,
         }),
       );
 

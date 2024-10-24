@@ -193,9 +193,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final List<Widget> stack = <Widget>[];
 
-    // Update credite counter
-    _setCreditsGlobal();
-
     if (_queryProductError == null) {
       stack.add(
         ListView(
