@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:http/http.dart' as http;
@@ -364,7 +365,7 @@ class _RundScreen extends State<RundScreen> with TickerProviderStateMixin {
       // Parse JSON to Place object
       final List<dynamic> placesJson =
               json.decode(utf8.decode(response.bodyBytes)) as List<dynamic>;
-      places = placesJson.map((json) => Place.fromJson(json)).toList();
+      places = placesJson.map((json) => Place.fromJsonOSM(json)).toList();
     } else {
       throw Exception('[-] Failed to get places.');
     }
@@ -514,7 +515,6 @@ class _RundScreen extends State<RundScreen> with TickerProviderStateMixin {
       (match) => '"${match[1]}"'
     );
 
-    print(jsonString);
     Map<String, dynamic> filtersJson = json.decode(jsonString);
 
     return filtersJson;
@@ -526,7 +526,6 @@ class _RundScreen extends State<RundScreen> with TickerProviderStateMixin {
       builder: (BuildContext context) {
         return RundFilters(
           searchBtnCallback: (today, filters) async {
-            //List<Place> places = await _searchNearby(today, filters);
             List<Place> places = await _filterPlaces(today, filters);
             setState(() {
               print("DEBUG: _filterPlaces has returned, setting places, ${places.length}");
@@ -900,6 +899,7 @@ class Place {
     required this.lastUpdated,
   });
 
+  /// Opening hours comes from Places API or is formatted like it.
   factory Place.fromJson(Map<String, dynamic> json) {
     return Place(
       formattedAddress: json['place_formatted_address'] != ""
@@ -920,7 +920,40 @@ class Place {
       currentOpeningHours: (json['place_current_opening_hours'] != "null"
         && json['place_current_opening_hours'] != "\"\""
         && json['place_current_opening_hours'] != null)
-        ? OpeningHours.parseOverpassStr(json['place_current_opening_hours'])
+        ? OpeningHours.fromJson(jsonDecode(json['place_current_opening_hours']))
+        : null,
+      countryId: json['place_country'] != ""
+        ? json['place_country']
+        : 0,
+      areaId: json['place_area_id'] ?? 0,
+      lastUpdated: json['last_updated'] != null
+        ? DateTime.parse(json['last_updated'])
+        : DateTime(1970, 1, 1),
+    );
+  }
+
+  /// Opening hours comes from OpenStreetMap.
+  factory Place.fromJsonOSM(Map<String, dynamic> json) {
+    return Place(
+      formattedAddress: json['place_formatted_address'] != ""
+        ? json['place_formatted_address']
+        : "Unknown",
+      googleMapsUri: json['place_google_maps_uri'] != ""
+        ? json['place_google_maps_uri']
+        : "Unknown",
+      primaryType: json['place_primary_type'] != ""
+        ? json['place_primary_type']
+        : "Unknown",
+      displayName: json['place_display_name'] != ""
+        ? json['place_display_name']
+        : "Unknown",
+      location: json['place_longitude'] != "null" && json['place_latitude'] != "null"
+        ? Location(lat: json['place_latitude'], lng: json['place_longitude'])
+        : Location(lat: -360, lng: -360),
+      currentOpeningHours: (json['place_current_opening_hours'] != "null"
+        && json['place_current_opening_hours'] != "\"\""
+        && json['place_current_opening_hours'] != null)
+        ? OpeningHours.parseOSMOpeningHours(json['place_current_opening_hours'])
         : null,
       countryId: json['place_country'] != ""
         ? json['place_country']
@@ -1009,7 +1042,7 @@ class OpeningHours {
 
   /// Parse a string of opening hours as returned by Overpass API.
   /// i.e. 'Mo-Th 10:30-22:30; Fr-Sa 10:30-23:00; Su 10:30-22:30'
-  static OpeningHours parseOverpassStr(String input) {
+  static OpeningHours parseOSMOpeningHours(String input) {
     // Day abbreviations to day number mapping
     const dayMap = {
       'Mo': 1,
@@ -1018,57 +1051,140 @@ class OpeningHours {
       'Th': 4,
       'Fr': 5,
       'Sa': 6,
-      'Su': 7
+      'Su': 7,
     };
 
     final List<Period> periods = [];
-    final List<String> weekdayDescriptions = input.split(';').map((s) =>
-        s.trim()).toList();
 
-    for (var description in weekdayDescriptions) {
-      // Split day range and time range
-      final dayAndTime = description.split(' ');
+    // Trim double quotes
+    input = input.substring(1, input.length - 1);
 
-      // If there's no time part or it's a non-time value, skip this entry
-      if (dayAndTime.length < 2 || !_isValidTimeRange(dayAndTime[1])) {
+    // Sometimes ranges are split with ';' and sometimes with ','...
+    List<String> weekdayDescriptions = [];
+    if (input.contains("; ")) {
+      weekdayDescriptions = input.split(';').map((s) => s.trim()).toList();
+    }
+    else {
+      weekdayDescriptions = input.split(',').map((s) => s.trim()).toList();
+    }
+
+    for (final String description in weekdayDescriptions) {
+      final String daysRaw = splitUntilFirstDigit(description).trim();
+      final String hoursRaw = splitFromFirstDigit(description).trim();
+
+      if (startsWithDigit(hoursRaw) == false)
+        continue;
+
+      List<String> days = [];
+      List<String> hours = [];
+
+      // Corner case
+      //   input = "...; Su off"
+      //   days = [..., Su]
+      //   hours = off
+      if (hoursRaw.contains("off")) {
         continue;
       }
 
-      final days = dayAndTime[0].split('-');
-      final timeRange = dayAndTime[1];
+      // Use case: 12:00-14:00,19:30-21:30
+      hours = hoursRaw.split(',');
 
-      // Parse the time range (open-close)
-      final times = timeRange.split('-');
-      final openTime = _parseTime(times[0]);
-      final closeTime = _parseTime(times[1]);
-
-      // Ensure times are valid before proceeding
-      if (openTime == null || closeTime == null) {
-        continue;
-      }
-
-      // Get day numbers based on abbreviations
-      final startDay = dayMap[days[0]];
-      final endDay = days.length > 1 ? dayMap[days[1]] : startDay;
-
-      if (startDay != null && endDay != null) {
-        // Create Period objects for each day in the range
-        for (var day = startDay!; day <= endDay!; day++) {
-          periods.add(
-            Period(
-              open: Hour(day: day, hour: openTime.hour, minute: openTime.minute),
-              close: Hour(day: day, hour: closeTime.hour, minute: closeTime.minute),
-            ),
-          );
+      // Corner case
+      //   input = "09:00-24:00", those hours apply to all days
+      if (daysRaw == "") {
+        for (int i = 0; i <= 6; i++) {
+          periods.addAll(hoursStrToPeriod(i, hours));
         }
+      }
+
+      // Use case: 'Mo, Fr'
+      //   - monday and friday
+      if (daysRaw.contains(',')) {
+        days = daysRaw.split(',').map((d) => d.trim()).toList();
+
+        // At least one of the part is not in an expected format, don't even try
+        // to handle this mess move on...
+        if (dayMap[days[0]] == null || dayMap[days[1]] == null) {
+          continue;
+        }
+
+        periods.addAll(hoursStrToPeriod(dayMap[days[0]]!, hours));
+        periods.addAll(hoursStrToPeriod(dayMap[days[1]]!, hours));
+      }
+
+      // Use case: 'Mo-We'
+      //   - from monday to wednesday (included)
+      else if (daysRaw.contains('-')) {
+        days = daysRaw.split('-').map((d) => d.trim()).toList();
+        final a = dayMap[days[0]] ?? 0;
+        final b = dayMap[days[1]] ?? 0;
+        final start = min(a, b);
+        final int daysRange = (b - a).abs();
+        if (daysRange < 0 || daysRange >= dayMap.length)
+          continue;
+        for (int i = start; i <= start + daysRange; i++) {
+          periods.addAll(hoursStrToPeriod(i, hours));
+        }
+      }
+
+      // Use case: 'We'
+      //   - wednesday
+      else if (daysRaw.length == 2) {
+        periods.addAll(hoursStrToPeriod(dayMap[daysRaw]!, hours));
       }
     }
 
-    // Assuming `openNow` isn't available in the input, set it to false for now
     return OpeningHours(
       openNow: false,
       periods: periods,
     );
+  }
+
+  static String splitUntilFirstDigit(String input) {
+    final regExp = RegExp(r'\d');
+    final match = regExp.firstMatch(input);
+    if (match != null) {
+      return input.substring(0, match.start);
+    }
+    return input;
+  }
+
+  static String splitFromFirstDigit(String input) {
+    final regExp = RegExp(r'\d');
+    final match = regExp.firstMatch(input);
+    if (match != null) {
+      return input.substring(match.start);
+    }
+    return input;
+  }
+
+  static bool startsWithDigit(String input) {
+    final regExp = RegExp(r'\d');
+    final match = regExp.firstMatch(input);
+    return (match != null);
+  }
+
+  static List<Period> hoursStrToPeriod(int day, List<String> hours) {
+    List<Period> periods = [];
+
+    for (final range in hours) {
+      List<String> rangeParts = range.split('-');
+      //print("DEBUG: (parseOSMOpeningHours)     rangeParts = $rangeParts");
+
+      DateTime? hStart = _parseTime(rangeParts[0]);
+      DateTime? hEnd = _parseTime(rangeParts[1]);
+
+      if (hStart == null || hEnd == null) {
+        continue;
+      }
+
+      periods.add(Period(
+        open: Hour(day: day, hour: hStart!.hour, minute: hStart!.minute),
+        close: Hour(day: day, hour: hEnd!.hour, minute: hEnd!.minute),
+      ));
+    }
+
+    return periods;
   }
 
   // Helper method to check if the time range is valid
