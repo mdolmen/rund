@@ -82,6 +82,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _setCreditsGlobal() async {
+    while (USER_ID.isEmpty) {
+      await Future.delayed(Duration(milliseconds: 50));
+    }
     final String url = BACKEND_URL + '/get-credits';
     int credits = 0;
   
