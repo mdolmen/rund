@@ -312,8 +312,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   }
 
                   // Trigger purchase
-                  if (productDetails.id == _kCredits20Id
-                      || productDetails.id == _kCredits200Id)
+                  if (productDetails.id == _kCredits20Id ||
+                      productDetails.id == _kCredits50Id ||
+                      productDetails.id == _kCredits200Id)
                   {
                     _inAppPurchase.buyConsumable(
                       purchaseParam: purchaseParam,

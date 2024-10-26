@@ -106,17 +106,16 @@ async def verify_purchase(purchase: VerifyPurchaseRequest):
             # Successful verification
             receipt = result.get('receipt')
             product_receipts = [item for item in receipt['in_app'] if
-                                item['productId'] == purchase.productId]
+                                item['product_id'] == purchase.productId]
             if not product_receipts:
                 raise HTTPException(status_code=400,
                                     detail="[-] Product not found in receipt.")
 
             user_credits = handle_payment_success(
-                product_receipts['in_app'][0]['productId'],
+                product_receipts[0]['product_id'],
                 purchase.userId
             )
             data = json.dumps({"status": "success", "credits_available": user_credits})
-
         else:
             # Verification failed
             raise HTTPException(status_code=400,
@@ -128,14 +127,11 @@ async def verify_purchase(purchase: VerifyPurchaseRequest):
     return Response(content=data, media_type="application/json")
 
 def handle_payment_success(product_id, user_id):
-    print("DEBUG: handle_payment_success")
-    print(f"DEBUG: user id = {user_id}")
     quantity = {
         'com.rund.credits.20': 20,
         'com.rund.credits.50': 50,
         'com.rund.credits.200': 200
     }
-    print(f"DEBUG: product id = {product_id}")
     credits = quantity[product_id]
 
     places.insert_purchase(user_id, credits)
@@ -143,6 +139,5 @@ def handle_payment_success(product_id, user_id):
     places.insert_credits(user_id, credits)
 
     user_credits = places.get_credits(user_id)
-    print(f"user credits = {user_credits}")
 
     return user_credits

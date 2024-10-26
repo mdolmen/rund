@@ -138,16 +138,12 @@ class Places:
     def add_place_oapi(self, place, area_id):
         # format: housenumber street, postcode city, country
         tags = place.get('tags', {})
-        print(place)
-        print(tags)
+        print(f"[+] Inserting place: {place.get('name', '')}")
 
-        print(tags.get("addr:country", "XX"))
         country = self.db.get_country_name(tags.get("addr:country", "XX"))
-        print(country)
         country_id = 0
         if country != "":
             country_id = self.db.get_country_id(country)
-        print(country_id)
 
         formatted_address = tags.get("addr:housenumber", "")
         formatted_address += " " + tags.get("addr:street", "Unknown")
@@ -366,7 +362,6 @@ class Places:
                                                         adjacent_lat)
                 area_ids.append(area_id)
 
-        print(f"DEBUG: area_id = {area_id}")
         print(f"DEBUG: area_ids = {area_ids}")
         new_places = self.get_places_from_db(area_ids, params.includedTypes)
         if (new_places == None):
