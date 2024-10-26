@@ -1419,6 +1419,8 @@ class PlaceDetails extends StatelessWidget {
     required this.openingHours,
   });
 
+  String _showDescLastDay = "";
+
   Widget _showDesc(Period period) {
     final periodStr = period.toString();
     int dayLength = 10;
@@ -1426,6 +1428,13 @@ class PlaceDetails extends StatelessWidget {
 
     // Craft opening hours text with padding to align the time that comes next
     String dayPart = periodStr.substring(0, splitIndex).trim();
+
+    // Show the day name only once even if there are multiple period
+    if (dayPart == _showDescLastDay) {
+      dayPart = "";
+    }
+    _showDescLastDay = dayPart;
+
     String padding = List.filled(dayLength - dayPart.length, ' ').join();
     String dayPartFormatted = dayPart + padding;
 
