@@ -1150,6 +1150,9 @@ class OpeningHours {
       }
     }
 
+    // Sort periods by day name
+    periods.sort((a, b) => a.open.day.compareTo(b.open.day));
+
     return OpeningHours(
       openNow: false,
       periods: periods,
@@ -1185,7 +1188,11 @@ class OpeningHours {
 
     for (final range in hours) {
       List<String> rangeParts = range.split('-');
-      //print("DEBUG: (parseOSMOpeningHours)     rangeParts = $rangeParts");
+
+      // Wrongly formatted hour
+      if (rangeParts.length != 2) {
+        continue;
+      }
 
       DateTime? hStart = _parseTime(rangeParts[0]);
       DateTime? hEnd = _parseTime(rangeParts[1]);
@@ -1456,7 +1463,7 @@ class PlaceDetails extends StatelessWidget {
     required this.openingHours,
   });
 
-  String _showDescLastDay = "";
+  String _showDescLastDay = "Invalid";
 
   Widget _showDesc(Period period) {
     final periodStr = period.toString();
@@ -1466,11 +1473,17 @@ class PlaceDetails extends StatelessWidget {
     // Craft opening hours text with padding to align the time that comes next
     String dayPart = periodStr.substring(0, splitIndex).trim();
 
+    if (dayPart == "Invalid") {
+      return Row();
+    }
+
     // Show the day name only once even if there are multiple period
-    if (dayPart == _showDescLastDay) {
+    if (dayPart == _showDescLastDay || _showDescLastDay == "") {
       dayPart = "";
     }
-    _showDescLastDay = dayPart;
+    if (dayPart != "") {
+      _showDescLastDay = dayPart;
+    }
 
     String padding = List.filled(dayLength - dayPart.length, ' ').join();
     String dayPartFormatted = dayPart + padding;
