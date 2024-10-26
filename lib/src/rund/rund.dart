@@ -57,6 +57,7 @@ class _RundScreen extends State<RundScreen> with TickerProviderStateMixin {
   String _lastKnownPosition = "";
   bool _positionHasChanged = true;
   bool _online = true;
+  String _type = "";
 
   @override
   void initState() {
@@ -82,6 +83,7 @@ class _RundScreen extends State<RundScreen> with TickerProviderStateMixin {
 
   bool _applyFilters(String today, String filters, Place place) {
     Map<String, dynamic> filtersJson = _formatStrToJson(filters, true);
+    bool f_subtype = true;
     bool f_open_on = true;
     bool f_open_before = true;
     bool f_open_after = true;
@@ -106,6 +108,11 @@ class _RundScreen extends State<RundScreen> with TickerProviderStateMixin {
     if (filtersJson["days"] != null) {
       f_open_on = false;
       days = filtersJson['days'].cast<String>();
+    }
+
+    // Subtype
+    if (filtersJson["subtype"] != null) {
+      f_subtype = (place.primaryType == filtersJson["subtype"]);
     }
 
     // Open on
@@ -240,15 +247,19 @@ class _RundScreen extends State<RundScreen> with TickerProviderStateMixin {
 
     //print("DEBUG: f_open_on: $f_open_on, f_open_today: $f_open_today, f_open_now: $f_open_now, f_open_before: $f_open_before, f_open_after: $f_open_after;\n");
     //print("\n");
-    return f_open_on && f_open_today && f_open_now && f_open_before && f_open_after;
+    return f_subtype
+            && f_open_on
+            && f_open_today
+            && f_open_now
+            && f_open_before
+            && f_open_after;
   }
 
   Future<List<Place>> _searchNearby(String today, String filters) async {
     print("[+] Getting places around...");
-    print("DEBUG: (_getPlaces) User id = $USER_ID");
     Map<String, dynamic> filtersJson = _formatStrToJson(filters, false);
 
-    String type = filtersJson["types"] ?? "";
+    _type = filtersJson["types"] ?? "";
 
     // Get current position
     if (_lastKnownCoords.lat == -360 && _lastKnownCoords.lng == -360) {
@@ -264,7 +275,7 @@ class _RundScreen extends State<RundScreen> with TickerProviderStateMixin {
     // Search for places either calling the backend or using the local sqlite db
     // (cache).
     if (_online) {
-      places = await _getPlaces(type);
+      places = await _getPlaces(_type);
 
       // Add all the places to the local db
       for (final place in places) {
@@ -272,7 +283,7 @@ class _RundScreen extends State<RundScreen> with TickerProviderStateMixin {
       }
     }
     else {
-      places = await _getPlacesFromLocalDb(type);
+      places = await _getPlacesFromLocalDb(_type);
     }
 
     // TODO: requires adding a function to get places from local db
@@ -486,16 +497,20 @@ class _RundScreen extends State<RundScreen> with TickerProviderStateMixin {
       (match) => '"${match[1]}"'
     );
 
-    // Do this to fully transform the string. In the case of the filters we
-    // don't want to add double quotes around 'null' string to keep it a boolean
-    // instead of making it a string.
-    if (isFilters == false) {
-      // Put double quotes around unquoted string values
-      jsonString = jsonString.replaceAllMapped(
-        RegExp(r'(?<=:\s?)([a-zA-Z][a-zA-Z\s]*)(?=[,\}\]])'),
-        (match) => '"${match[1]}"'
-      );
-    }
+    //// Do this to fully transform the string. In the case of the filters we
+    //// don't want to add double quotes around 'null' string to keep it a boolean
+    //// instead of making it a string.
+    //if (isFilters == false) {
+    //  // Put double quotes around unquoted string values
+    //  jsonString = jsonString.replaceAllMapped(
+    //    RegExp(r'(?<=:\s?)([a-zA-Z][a-zA-Z\s]*)(?=[,\}\]])'),
+    //    (match) => '"${match[1]}"'
+    //  );
+    //}
+    jsonString = jsonString.replaceAllMapped(
+      RegExp(r'(?<=:\s?)(?!null\b)([a-zA-Z][a-zA-Z\s]*)(?=[,\}\]])'),
+      (match) => '"${match[1]}"'
+    );
 
     // Put double quotes around strings in arrays
     jsonString = jsonString.replaceAllMapped(
@@ -525,6 +540,7 @@ class _RundScreen extends State<RundScreen> with TickerProviderStateMixin {
       context: context,
       builder: (BuildContext context) {
         return RundFilters(
+          type: _type,
           searchBtnCallback: (today, filters) async {
             List<Place> places = await _filterPlaces(today, filters);
             setState(() {
@@ -1286,9 +1302,11 @@ class Hour {
 class RundFilters extends StatelessWidget {
   final _formKey = GlobalKey<FormBuilderState>();
   final Function(String, String) searchBtnCallback;
+  final String type;
 
   RundFilters({
     required this.searchBtnCallback,
+    required this.type,
   });
 
   String _getDayName() {
@@ -1313,12 +1331,31 @@ class RundFilters extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    List<String> subtypes = placeTypes[type] ?? [];
+
     return AlertDialog(
       title: const Text("Filters"),
       content: FormBuilder(
         key: _formKey,
         child: Column(
           children: [
+            // Subtype
+            FormBuilderDropdown<String>(
+              name: 'subtype',
+              decoration: InputDecoration(
+                labelText: 'Subtype',
+                hintText: 'Select subtype',
+              ),
+              validator: FormBuilderValidators.compose(
+                  [FormBuilderValidators.required()]),
+              items: subtypes
+                  .map((subtype) => DropdownMenuItem(
+                        value: subtype,
+                        child: Text(subtype),
+                      ))
+                  .toList(),
+            ),
+
             // Open on
             FormBuilderFilterChip<String>(
               autovalidateMode: AutovalidateMode.onUserInteraction,
