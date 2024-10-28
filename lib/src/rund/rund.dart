@@ -58,6 +58,7 @@ class _RundScreen extends State<RundScreen> with TickerProviderStateMixin {
   bool _positionHasChanged = true;
   bool _online = true;
   String _type = "";
+  String _status = "ok";
 
   @override
   void initState() {
@@ -373,10 +374,15 @@ class _RundScreen extends State<RundScreen> with TickerProviderStateMixin {
     );
 
     if (response.statusCode == 200) {
-      // Parse JSON to Place object
-      final List<dynamic> placesJson =
-              json.decode(utf8.decode(response.bodyBytes)) as List<dynamic>;
+      // Parse JSON response
+      final Map<String, dynamic> responseJson =
+              json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+
+      // Extract the list of places and map to Place objects
+      final List<dynamic> placesJson = responseJson['places'];
       places = placesJson.map((json) => Place.fromJsonOSM(json)).toList();
+
+      _status = responseJson['status'];
     } else {
       throw Exception('[-] Failed to get places.');
     }
@@ -714,6 +720,20 @@ class _RundScreen extends State<RundScreen> with TickerProviderStateMixin {
           ),
           pinned: true,
         ),
+
+        if (!_searchOngoing && _status != "ok")
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (BuildContext context, int index) {
+                return ListTile(
+                  title: Center(
+                    child: Text(_status),
+                  ),
+                );
+              },
+              childCount: 1,
+            ),
+          ),
 
         if (!_searchOngoing)
           SliverList(

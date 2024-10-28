@@ -29,16 +29,18 @@ async def index():
 
 @app.post("/get-places")
 async def get_places(params: AutourRequest):
+    status = ""
+
     if places.credits_available(params.userId):
         new_places = await places.get_places(params)
         places.dec_credits(params.userId)
+        status = "ok"
     else:
         print("[-] Not enough credits...")
+        status = "not enough credits"
         new_places = []
 
-    # TODO: return a more complex object with an error in case not enough
-    # credits
-    return new_places
+    return {"status": status, "places": new_places}
 
 @app.post("/get-places-dev")
 async def get_places_dev(params: RequestBody):
