@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:provider/provider.dart';
 
 import 'rund/rund.dart';
 import 'rund/settings.dart';
@@ -89,6 +90,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+  final GlobalKey<SettingsScreenState> settingsScreenKey = GlobalKey();
 
   int screenIndex = 0;
 
@@ -99,9 +101,9 @@ class _MainScreenState extends State<MainScreen> {
 
       body: IndexedStack(
         index: screenIndex,
-        children: const [
+        children: [
             RundScreen(),
-            SettingsScreen(),
+            SettingsScreen(key: settingsScreenKey),
         ],
       ),
 
@@ -111,6 +113,11 @@ class _MainScreenState extends State<MainScreen> {
           setState(() {
             screenIndex = index;
           });
+
+          // 1 == SettingsScreen index
+          if (index == 1) {
+            settingsScreenKey.currentState?.updateCreditsUI();
+          }
         },
         destinations: destinations.map(
           (Destination destination) {

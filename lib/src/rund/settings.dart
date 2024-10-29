@@ -13,6 +13,7 @@ import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
 import 'package:in_app_purchase_storekit/store_kit_wrappers.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 
 import 'globals.dart';
 import 'consumable_store.dart';
@@ -35,10 +36,10 @@ class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  State<SettingsScreen> createState() => SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class SettingsScreenState extends State<SettingsScreen> with ChangeNotifier {
   final InAppPurchase _inAppPurchase = InAppPurchase.instance;
   late StreamSubscription<List<PurchaseDetails>> _newCredits;
   List<String> _notFoundIds = <String>[];
@@ -49,6 +50,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _loading = true;
   String? _queryProductError;
   int _credits = 0;
+
+  void updateCreditsUI() {
+    setState(() {
+      _setCreditsGlobal();
+    });
+    notifyListeners();
+  }
 
   @override
   void initState() {
