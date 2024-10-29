@@ -50,7 +50,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>This app needs access to location for the main feature of the app which consists of getting places around that position.</string>
+    <string>This app requires access to your location to show relevant nearby places and services based on your position. For example, your location will help suggest places within walking distance that match your filters. Your location data is used only while the app is in use and is not stored.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
