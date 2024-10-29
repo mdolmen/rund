@@ -670,18 +670,30 @@ class _RundScreen extends State<RundScreen> with TickerProviderStateMixin {
                   alignment: Alignment.centerRight,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      IconButton(
-                        iconSize: 30,
-                        icon: const Icon(Icons.pin_drop),
-                        onPressed: () => _showCurrentPosition(context),
-                        padding: EdgeInsets.zero,
+                      GestureDetector(
+                        onTap: () => _showCurrentPosition(context),
+                        child: Icon(
+                          Icons.pin_drop,
+                          size: 30,
+                        ),
                       ),
-                      IconButton(
-                        iconSize: 30,
-                        icon: const Icon(Icons.filter_list_rounded),
-                        onPressed: () => _showFilters(context),
-                        padding: EdgeInsets.zero,
+                      SizedBox(width: 10),
+                      GestureDetector(
+                        onTap: () => _showFilters(context),
+                        child: Icon(
+                          Icons.filter_list_rounded,
+                          size: 30,
+                        ),
+                      ),
+                      SizedBox(width: 10),
+                      GestureDetector(
+                        onTap: () => { setState(() {_placesShown = _places;}) },
+                        child: Icon(
+                          Icons.clear,
+                          size: 30,
+                        ),
                       ),
                     ],
                   ),
