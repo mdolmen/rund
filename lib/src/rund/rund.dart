@@ -646,6 +646,14 @@ class _RundScreen extends State<RundScreen> with TickerProviderStateMixin {
     );
   }
 
+  void filterOnTypeTap(String subtype) async {
+    List<Place> places = await _filterPlaces("Monday", '{"subtype": "$subtype"}');
+    setState(() {
+      print("DEBUG: filterOnTypeTap has returned, setting places, ${places.length}");
+      _placesShown = places;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
@@ -744,7 +752,10 @@ class _RundScreen extends State<RundScreen> with TickerProviderStateMixin {
                     _showPlaceDetails(context, index);
                   },
                   child: Container(
-                    child: PlaceListItem(placeData: _placesShown[index]),
+                    child: PlaceListItem(
+                      placeData: _placesShown[index],
+                      filterOnTypeTapCallback: filterOnTypeTap
+                    ),
                   ),
                 );
               },
@@ -769,10 +780,12 @@ class _RundScreen extends State<RundScreen> with TickerProviderStateMixin {
 
 class PlaceListItem extends StatelessWidget {
   final Place placeData;
+  final Function(String) filterOnTypeTapCallback;
   int _todayIdx = 0;
 
   PlaceListItem({
     required this.placeData,
+    required this.filterOnTypeTapCallback,
   });
 
   String _getDayName() {
@@ -863,13 +876,19 @@ class PlaceListItem extends StatelessWidget {
                           ),
                         ),
                         Container(height: 5),
-                        Text(
-                          "     " + placeData.primaryType,
-                          style: TextStyle(
-                            color: Colors.grey[500],
-                            fontStyle: FontStyle.italic,
+                        GestureDetector(
+                          onTap: () {
+                            filterOnTypeTapCallback(placeData.primaryType);
+                          },
+                          child: Text(
+                            "     " + placeData.primaryType,
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontStyle: FontStyle.italic,
+                            ),
                           ),
                         ),
+
                       ],
                     ),
                   ),
