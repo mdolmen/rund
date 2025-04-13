@@ -13,7 +13,7 @@ import utm
 from utm import AREA_WIDTH, AREA_HEIGHT, PointInfo
 from db import Database
 
-API_KEY_GPLACES = ""
+API_KEY_GPLACES = "AIzaSyCThUTe1g_7sWGwfPCT_TffCRS87OIuYZc"
 
 PLACE_TYPES_GAPI = {
     "Automotive": 0,
@@ -138,7 +138,7 @@ class Places:
     def add_place_oapi(self, place, area_id):
         # format: housenumber street, postcode city, country
         tags = place.get('tags', {})
-        print(f"[+] Inserting place: {place.get('name', '')}")
+        print(f"[+] Inserting place: {tags.get('name', '')}")
 
         country = self.db.get_country_name(tags.get("addr:country", "XX"))
         country_id = 0

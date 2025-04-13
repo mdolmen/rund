@@ -8,7 +8,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import Response
 from pydantic import BaseModel
 
-API_KEY_GEOCODE = "";
+API_KEY_GEOCODE = "669686c68c642744766889izvb6a678";
 
 places = Places()
 
@@ -90,7 +90,7 @@ async def verify_purchase(purchase: VerifyPurchaseRequest):
 
     payload = {
         'receipt-data': purchase.verificationData,
-        'password': '56a3c58bab1448c384537aa6b017fc93'
+        'password': '41b86b6be24d4f9b88e94e3c8041edec'
     }
 
     try:
